@@ -125,6 +125,7 @@ class ModernButton(wx.Button):
 class MainFrame(wx.Frame):
     def __init__(self, parent):
         super().__init__(parent, title="Joihey Software")
+        self.machine_config_buttons = {}
         self.SetBackgroundColour(BG_COLOR_LIGHT_GREEN)
 
         icon_path = os.path.join(os.path.dirname(__file__), "..", "data", "picture", "junhe.ico")
@@ -181,21 +182,21 @@ class MainFrame(wx.Frame):
         status_label.SetFont(wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         status_label.SetForegroundColour(wx.BLACK)
 
-        btn_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.left_out_fx_btn = ModernButton(param_card, label="仿形升降机(1号)", size=wx.Size(180, 50))
-        self.right_xn_side_btn = ModernButton(param_card, label="右侧侧面云雀(3号)", size=wx.Size(180, 50))
-        btn_sizer2.Add(self.left_out_fx_btn, 0, wx.ALL, 8)
-        btn_sizer2.Add(self.right_xn_side_btn, 0, wx.ALL, 8)
-
-        btn_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
-        self.left_xn_side_btn = ModernButton(param_card, label="左侧侧面云雀(2号)", size=wx.Size(180, 50))
-        btn_sizer3.Add(self.left_xn_side_btn, 0, wx.ALL, 8)
+        button_rows = (((0, "左侧顶底设备(SN0)"), (1, "右侧顶底设备(SN1)")), ((2, "左侧二维设备(SN2)"), (3, "右侧二维设备(SN3)")))
+        button_sizers = []
+        for row in button_rows:
+            row_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            for sn, label in row:
+                button = ModernButton(param_card, label=label, size=wx.Size(180, 50))
+                self.machine_config_buttons[sn] = button
+                row_sizer.Add(button, 0, wx.ALL, 8)
+            button_sizers.append(row_sizer)
 
         param_card_sizer.AddSpacer(50)
         param_card_sizer.Add(status_label, 0, wx.EXPAND | wx.ALL, 5)
         param_card_sizer.AddSpacer(5)
-        param_card_sizer.Add(btn_sizer2, 0, wx.EXPAND | wx.ALL, 5)
-        param_card_sizer.Add(btn_sizer3, 0, wx.EXPAND | wx.ALL, 5)
+        for button_sizer in button_sizers:
+            param_card_sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALL, 5)
         param_card.SetSizer(param_card_sizer)
 
         left_vbox.Add(control_card, 0, wx.EXPAND | wx.ALL, 10)
@@ -243,9 +244,8 @@ class MainFrame(wx.Frame):
         left_scrolled.SetVirtualSize(left_vbox.GetMinSize())
 
     def _set_param_buttons_enabled(self, enabled: bool):
-        self.left_out_fx_btn.Enable(enabled)
-        self.left_xn_side_btn.Enable(enabled)
-        self.right_xn_side_btn.Enable(enabled)
+        for button in self.machine_config_buttons.values():
+            button.Enable(enabled)
 
     def _set_control_buttons_active(self, active: bool):
         self.start_btn.SetVisualActive(active)

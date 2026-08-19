@@ -52,6 +52,20 @@ class MachineConfigFrame(wx.Dialog):
         "outside_total_cycles",
     ]
 
+    XN_UPDOWN_PARAM_KEYS = [
+        "out_front_x_offset",
+        "out_after_x_offset",
+        "x_pos_speed",
+        "x_recip_speed",
+        "out_up_y_offset",
+        "out_down_y_offset",
+        "in_up_y_offset",
+        "in_down_y_offset",
+        "y_pos_speed",
+        "out_z_front_offset",
+        "out_z_after_offset",
+    ]
+
     DEVICE_PARAM_KEYS = {
         0: [
             "out_front_x_offset", "x_pos_speed", "x_recip_speed", "x_status_offset", "out_up_y_offset", "out_down_y_offset", "y_pos_speed", "y_recip_speed",
@@ -92,7 +106,10 @@ class MachineConfigFrame(wx.Dialog):
     def _get_param_order_for_config(self, sn: int, machine_cfg: dict):
         """根据SN号返回需要显示的参数列表"""
         if self.strategy_name == "frame_by_frame":
-            keys = self.FRAME_BY_FRAME_PARAM_KEYS
+            if machine_cfg.get("type") == "xn_updown":
+                keys = self.XN_UPDOWN_PARAM_KEYS
+            else:
+                keys = self.FRAME_BY_FRAME_PARAM_KEYS
         else:
             keys = self.DEVICE_PARAM_KEYS.get(sn, [])
         return [(key, self.PARAM_LABELS[key]) for key in keys if key in self.PARAM_LABELS]

@@ -76,9 +76,8 @@ class MainFrameController(MainFrame):
         # 绑定按钮事件
         self.start_btn.Bind(wx.EVT_BUTTON, self._handle_start_with_password)
         self.stop_btn.Bind(wx.EVT_BUTTON, self._handle_stop_with_password)
-        self.left_out_fx_btn.Bind(wx.EVT_BUTTON, lambda e: self._open_machine_config_with_password(0))
-        self.left_xn_side_btn.Bind(wx.EVT_BUTTON, lambda e: self._open_machine_config_with_password(1))
-        self.right_xn_side_btn.Bind(wx.EVT_BUTTON, lambda e: self._open_machine_config_with_password(2))
+        for sn, button in self.machine_config_buttons.items():
+            button.Bind(wx.EVT_BUTTON, lambda e, target_sn=sn: self._open_machine_config_with_password(target_sn))
         self.Bind(wx.EVT_CLOSE, self.on_close)
 
     def _ensure_password_config(self):

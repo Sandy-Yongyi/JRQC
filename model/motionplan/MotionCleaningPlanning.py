@@ -1,12 +1,16 @@
 from model.motionplan.MachineAxisMap import get_axis_position_limits, get_axis_speed_limit, get_axis_safe_pos
 from model.motionplan.motionutil.AxisLimits import build_axis, clamp_to_limit_r, clamp_to_limit_yx, clamp_to_limit_z
+from model.motionplan.motionutil.FrameSearchHelper import FrameSearchHelper
 from model.utils.LoggerUtil import logger
 
 
 class MotionCleaningPlanning:
     """清理模式运动规划。"""
 
-    CLEAN_MODE_BIT = 1 << 6
+    CLEAN_MODE_BIT = 1 << 15
+
+    def __init__(self):
+        self.frame_search_helper = FrameSearchHelper()
 
     def is_clean_mode_enabled(self, operate: int) -> bool:
         return (int(operate or 0) & self.CLEAN_MODE_BIT) != 0
@@ -17,6 +21,15 @@ class MotionCleaningPlanning:
         for direction_queues in queues.values():
             for queue_data in (direction_queues or {}).values():
                 if self._queue_has_workpiece(queue_data, is_empty_data):
+                    return True
+        return False
+
+    def has_any_frame_data(self, frame_queue_manager) -> bool:
+        """扫描按帧模式全部方向队列，任一行存在非零坐标即表示仍有点云。"""
+        frame_stack = getattr(frame_queue_manager, "frame_stack", {}) or {}
+        for frames in frame_stack.values():
+            for frame in frames or []:
+                if self.frame_search_helper.frame_has_data(frame):
                     return True
         return False
 
@@ -37,7 +50,7 @@ class MotionCleaningPlanning:
                 axis_cmds[axis_name] = build_axis(target, x_pos_speed, 0, speed_limit)
                 continue
 
-            if axis_name == "y":
+            if axis_name.startswith("y"):
                 target = clamp_to_limit_yx(get_axis_safe_pos(machine_cfg, axis_name, default=0), min_limit, max_limit)
                 axis_cmds[axis_name] = build_axis(target, y_pos_speed, 0, speed_limit)
                 continue
@@ -57,9 +70,9 @@ class MotionCleaningPlanning:
 
         return axis_cmds
 
-    def log_clean_mode_blocked(self):
-        print("当前内部有工件请关闭清理模式")
-        logger.warning("当前内部有工件请关闭清理模式")
+    def log_clean_mode_blocked(self, message="当前内部有工件请关闭清理模式"):
+        print(message)
+        logger.warning(message)
 
     @staticmethod
     def _queue_has_workpiece(queue_data, is_empty_data=None) -> bool:

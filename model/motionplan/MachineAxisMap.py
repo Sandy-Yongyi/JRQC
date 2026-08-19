@@ -2,11 +2,14 @@
 设备轴索引映射配置模块。
 
 根据当前策略对应 MachineConfig1/2/3.toml 的 type 和 install_orietation，查找 PLC AxisList
-中对应的轴索引。当前 Lab_Auto 第一阶段设备顺序：
+中对应的轴索引。JRQC 按帧模式设备顺序：
 
-    sn=0 out_fx left     : 0~9   (z, y, x1~x8)
-    sn=1 xn_side left    : 10~28 (z, y1, x1, r1, ..., y6, x6, r6)
-    sn=2 xn_side right   : 29~47 (z, y1, x1, r1, ..., y6, x6, r6)
+    sn=0 xn_updown left  : 0~6   (x1, y1, x2, y2, x3, y3, x4)
+    sn=1 xn_updown right : 7~13  (x1, y1, x2, y2, x3, y3, x4)
+    sn=2 out_lift left   : 独立 Left2DLiftData，反馈 AxisList[14]
+    sn=3 out_lift right  : 独立 Right2DLiftData，反馈 AxisList[15]
+
+旧设备映射继续保留，供 MachineConfig2/3 对应的代码能力使用。
 """
 
 from model.utils.LoggerUtil import logger
@@ -15,8 +18,7 @@ from model.plc.MovingFrameData import AxisData
 
 
 AXIS_LIMIT_KEY: dict[str, dict[str, int]] = {
-    "out_fx": {"z": 0, "y": 1, "x": 2},
-    "xn_side": {"z": 0, "y": 1, "x": 2, "r": 3},
+    "xn_updown": {"y": 0, "x": 1},
 }
 
 
@@ -62,38 +64,18 @@ def get_axis_safe_pos(machine_cfg: dict, axis_name: str, default: int = 0) -> in
 
 
 MACHINE_AXIS_MAP = {
-    "out_fx": {
+    "xn_updown": {
         "left": dict(
-            z=0,
-            y=1,
-            x1=2,
-            x2=3,
-            x3=4,
-            x4=5,
-            x5=6,
-            x6=7,
-            x7=8,
-            x8=9,
-        ),
-    },
-    "xn_side": {
-        "left": dict(
-            z=10,
-            y1=11, x1=12, r1=13,
-            y2=14, x2=15, r2=16,
-            y3=17, x3=18, r3=19,
-            y4=20, x4=21, r4=22,
-            y5=23, x5=24, r5=25,
-            y6=26, x6=27, r6=28,
+            x1=0, y1=1,
+            x2=2, y2=3,
+            x3=4, y3=5,
+            x4=6,
         ),
         "right": dict(
-            z=29,
-            y1=30, x1=31, r1=32,
-            y2=33, x2=34, r2=35,
-            y3=36, x3=37, r3=38,
-            y4=39, x4=40, r4=41,
-            y5=42, x5=43, r5=44,
-            y6=45, x6=46, r6=47,
+            x1=7, y1=8,
+            x2=9, y2=10,
+            x3=11, y3=12,
+            x4=13,
         ),
     },
 }

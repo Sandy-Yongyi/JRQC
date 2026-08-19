@@ -2,7 +2,7 @@
 spray_mode = 0
 
 # 数据采集和运动策略：1=frame_by_frame，2=complete_workpiece，3=continuous_bidirectional
-strategy_name = 2
+strategy_name = 1
 
 # 主界面按钮操作密码
 auth_password = "hc123456"
