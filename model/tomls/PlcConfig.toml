@@ -1,0 +1,6 @@
+[1]
+tcp_ip = "192.168.1.100"       # PLC采用TCP方式连接的IP
+tcp_port = 2005                # PLC采用TCP方式连接的port
+udp_ip = "192.168.1.50"        # PLC采用UDP方式连接的IP
+udp_port = 6002                # PLC采用UDP方式连接的port
+connection_type = "tcp"        # 'tcp' 或 'udp'

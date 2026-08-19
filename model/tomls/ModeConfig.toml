@@ -1,0 +1,11 @@
+# 喷涂模式配置, 0为自动喷涂模式, 1为手动喷涂模式
+spray_mode = 0
+
+# 数据采集和运动策略：1=frame_by_frame，2=complete_workpiece，3=continuous_bidirectional
+strategy_name = 2
+
+# 主界面按钮操作密码
+auth_password = "hc123456"
+
+# 是否需要输入密码, true为需要, false为不需要
+require_password = false

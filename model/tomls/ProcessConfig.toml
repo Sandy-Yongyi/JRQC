@@ -1,0 +1,17 @@
+### 1. 点云间隔参数 ###
+y_threshold = 10                   # 按y间隔排序阈值,间隔10mm为一小块进行排序
+z_threshold = 10                   # 按z间隔排序阈值,单位mm
+
+### 2. 查找分区算法参数 ###
+jig_threshold = 30                 # 挂具距离最上平面y的起始距离
+x_range = 300                      # 判断为柜体的x轴范围,需大于才是柜体,否则为平板
+y_range = 300                      # 判断为柜体的y轴范围
+z_range = 300                      # 判断为柜体的z轴范围
+find_boundary_type = 2             # 找分区方式,1为固定6分区,2为随机分区
+inside_x_use_middle = 0            # 1=使用整体X中心点，0=使用整体X最小值加偏移量
+inside_x_min_offset = 150          # 偏移模式的X偏移量，单位mm；判断阈值=x_min+该值
+inside_partition_min_y_range = 100  # 按每帧z查找分区内分区最小Y范围，单位mm
+y_partition_threshold = 100        # 合并分区的y轴阈值,小于这个阈值不认为是分区
+z_partition_threshold = 100        # 合并分区的z轴阈值,小于这个阈值不认为是分区
+send_data_type = 2                 # 1=分帧发送,2=整方块数据发送模式
+find_y_plane = 0.5                 # 查找最上平面y所占的百分比
