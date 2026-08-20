@@ -22,6 +22,8 @@ MACHINE_OFFSET_KEYS = (
     "in_down_y_offset",
     "out_z_front_offset",
     "out_z_after_offset",
+    "search_front_z_offset",
+    "search_after_z_offset",
     "in_z_front_offset",
     "in_z_after_offset",
 )
@@ -36,8 +38,7 @@ def normalize_offset_value(value, default: int = DEFAULT_MACHINE_OFFSET) -> int:
     return offset if offset > 0 else int(default)
 
 
-def get_machine_offset(machine_cfg: dict, key: str, runtime_cfg: dict | None = None,
-                       default: int = DEFAULT_MACHINE_OFFSET) -> int:
+def get_machine_offset(machine_cfg: dict, key: str, runtime_cfg: dict | None = None, default: int = DEFAULT_MACHINE_OFFSET) -> int:
     """优先读取运行时偏移，并统一处理无效值。"""
     if runtime_cfg is not None and key in runtime_cfg:
         return normalize_offset_value(runtime_cfg.get(key), default)
@@ -53,19 +54,13 @@ def normalize_machine_offset_values(config: dict, fill_missing: bool = True) -> 
 
     flat_cfg = normalized.get("flat")
     if isinstance(flat_cfg, dict):
-        normalized["flat"] = normalize_machine_offset_values(
-            flat_cfg,
-            fill_missing=fill_missing,
-        )
+        normalized["flat"] = normalize_machine_offset_values(flat_cfg, fill_missing=fill_missing)
     return normalized
 
 
 def normalize_machine_config_offsets(machine_config: dict) -> dict:
     """归一化 MachineConfig 中每台设备的全部偏移参数。"""
-    return {
-        str(sn): normalize_machine_offset_values(machine_cfg)
-        for sn, machine_cfg in (machine_config or {}).items()
-    }
+    return {str(sn): normalize_machine_offset_values(machine_cfg) for sn, machine_cfg in (machine_config or {}).items()}
 
 
 def get_machine_config_filename(strategy_name: str) -> str:

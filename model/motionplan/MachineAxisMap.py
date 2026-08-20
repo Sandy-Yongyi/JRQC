@@ -4,8 +4,8 @@
 根据当前策略对应 MachineConfig1/2/3.toml 的 type 和 install_orietation，查找 PLC AxisList
 中对应的轴索引。JRQC 按帧模式设备顺序：
 
-    sn=0 xn_updown left  : 0~6   (x1, y1, x2, y2, x3, y3, x4)
-    sn=1 xn_updown right : 7~13  (x1, y1, x2, y2, x3, y3, x4)
+    sn=0 xn_updown left  : 0~6   (y1, x1, y2, x2, y3, x3, x4)
+    sn=1 xn_updown right : 7~13  (y1, x1, y2, x2, y3, x3, x4)
     sn=2 out_lift left   : 独立 Left2DLiftData，反馈 AxisList[14]
     sn=3 out_lift right  : 独立 Right2DLiftData，反馈 AxisList[15]
 
@@ -17,9 +17,7 @@ from model.motionplan.motionutil.AxisLimits import clamp_speed, clamp_to_limit_y
 from model.plc.MovingFrameData import AxisData
 
 
-AXIS_LIMIT_KEY: dict[str, dict[str, int]] = {
-    "xn_updown": {"y": 0, "x": 1},
-}
+AXIS_LIMIT_KEY: dict[str, dict[str, int]] = {"xn_updown": {"y": 0, "x": 1}}
 
 
 def get_axis_config_index(machine_type: str, axis_name: str) -> int | None:
@@ -63,22 +61,8 @@ def get_axis_safe_pos(machine_cfg: dict, axis_name: str, default: int = 0) -> in
     return get_axis_config_value(machine_cfg, axis_name, "safe_pos", default)
 
 
-MACHINE_AXIS_MAP = {
-    "xn_updown": {
-        "left": dict(
-            x1=0, y1=1,
-            x2=2, y2=3,
-            x3=4, y3=5,
-            x4=6,
-        ),
-        "right": dict(
-            x1=7, y1=8,
-            x2=9, y2=10,
-            x3=11, y3=12,
-            x4=13,
-        ),
-    },
-}
+MACHINE_AXIS_MAP = {"xn_updown": {"left": dict(y1=0, x1=1, y2=2, x2=3, y3=4, x3=5, x4=6),
+                                  "right": dict(y1=7, x1=8, y2=9, x2=10, y3=11, x3=12, x4=13)}}
 
 
 def get_axis_map(machine_type: str, orientation: str) -> dict:
@@ -122,11 +106,7 @@ def _limit_axis_command(machine_cfg: dict, axis_name: str, axis_data: AxisData) 
     if min_position > max_position:
         raise ValueError(f"轴 {axis_name} 的位置限位无效: {min_position} > {max_position}")
     max_speed = get_axis_speed_limit(machine_cfg, axis_name)
-    return AxisData(
-        Pos=clamp_to_limit_yx(int(axis_data.Pos), min_position, max_position),
-        Speed=clamp_speed(int(axis_data.Speed), max_speed),
-        Status=int(axis_data.Status),
-    )
+    return AxisData(Pos=clamp_to_limit_yx(int(axis_data.Pos), min_position, max_position), Speed=clamp_speed(int(axis_data.Speed), max_speed), Status=int(axis_data.Status))
 
 
 def apply_to_axis_list(machine_data: dict, machine_cfg: dict, axis_list: list):

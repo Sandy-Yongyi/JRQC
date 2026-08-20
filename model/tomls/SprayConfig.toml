@@ -46,6 +46,12 @@ out_z_front_offset_max = 500
 out_z_after_offset_min = 50
 out_z_after_offset_max = 500
 
+# 搜索数据 Z 轴后定位偏移的界面输入范围，单位 mm
+search_front_z_offset_min = 500
+search_front_z_offset_max = 1000
+search_after_z_offset_min = 500
+search_after_z_offset_max = 1000
+
 # 外侧往复喷涂次数的界面输入范围
 outside_total_cycles_min = 1
 outside_total_cycles_max = 5

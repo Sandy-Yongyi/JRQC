@@ -40,6 +40,8 @@ def _get_param_range_rules(sn: int | None = None, strategy_name="frame_by_frame"
             "y_recip_speed": (0, y_speed_max),
             "out_z_front_offset": _load_range(spray_cfg, "out_z_front_offset", 50, 300),
             "out_z_after_offset": _load_range(spray_cfg, "out_z_after_offset", 50, 300),
+            "search_front_z_offset": _load_range(spray_cfg, "search_front_z_offset", 500, 1000),
+            "search_after_z_offset": _load_range(spray_cfg, "search_after_z_offset", 500, 1000),
             "in_z_front_offset": _load_range(spray_cfg, "in_z_front_offset", 50, 300),
             "in_z_after_offset": _load_range(spray_cfg, "in_z_after_offset", 50, 300),
             "z_back_speed": (0, z_speed_max),
@@ -71,6 +73,8 @@ def _get_param_range_rules(sn: int | None = None, strategy_name="frame_by_frame"
             "y_recip_speed": (0, y_speed_max),
             "out_z_front_offset": (50, 300),
             "out_z_after_offset": (50, 300),
+            "search_front_z_offset": (500, 1000),
+            "search_after_z_offset": (500, 1000),
             "in_z_front_offset": (50, 300),
             "in_z_after_offset": (50, 300),
             "z_back_speed": (0, z_speed_max),
@@ -125,8 +129,7 @@ def load_machine_config_for_ui(sn: int, strategy_name="frame_by_frame") -> dict:
     return _normalize_config_for_ui(cfg.get(str(sn), {}))
 
 
-def save_machine_config_from_ui(sn: int, values: dict, control_queue=None,
-                                strategy_name="frame_by_frame"):
+def save_machine_config_from_ui(sn: int, values: dict, control_queue=None, strategy_name="frame_by_frame"):
     """保存机器配置并通知PLC进程"""
     param_range_rules = _get_param_range_rules(sn, strategy_name)
     _validate_params(values, param_range_rules)

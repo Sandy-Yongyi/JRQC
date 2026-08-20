@@ -23,6 +23,8 @@ class MachineConfigFrame(wx.Dialog):
         "y_recip_speed": "Y轴往复速度(mm/s)",
         "out_z_front_offset": "外侧Z轴前定位偏移(mm)",
         "out_z_after_offset": "外侧Z轴后定位偏移(mm)",
+        "search_front_z_offset": "搜索Z数据前偏移(mm)",
+        "search_after_z_offset": "搜索Z数据后偏移(mm)",
         "in_z_front_offset": "内侧Z轴前定位偏移(mm)",
         "in_z_after_offset": "内侧Z轴后定位偏移(mm)",
         "z_back_speed": "Z轴反喷速度(mm/s)",
@@ -32,25 +34,7 @@ class MachineConfigFrame(wx.Dialog):
         "recip_reduce_distance": "往复减少距离(mm)",
     }
 
-    FRAME_BY_FRAME_PARAM_KEYS = [
-        "tracking",
-        "y_move_min",
-        "y_move_max",
-        "out_front_x_offset",
-        "out_after_x_offset",
-        "x_pos_speed",
-        "x_recip_speed",
-        "out_up_y_offset",
-        "out_down_y_offset",
-        "y_pos_speed",
-        "y_recip_speed",
-        "out_z_front_offset",
-        "out_z_after_offset",
-        "z_back_speed",
-        "z_zeroing_speed",
-        "x_status_offset",
-        "outside_total_cycles",
-    ]
+    OUT_LIFT_PARAM_KEYS = ["out_z_front_offset", "out_z_after_offset"]
 
     XN_UPDOWN_PARAM_KEYS = [
         "out_front_x_offset",
@@ -62,6 +46,8 @@ class MachineConfigFrame(wx.Dialog):
         "in_up_y_offset",
         "in_down_y_offset",
         "y_pos_speed",
+        "search_front_z_offset",
+        "search_after_z_offset",
         "out_z_front_offset",
         "out_z_after_offset",
     ]
@@ -87,10 +73,8 @@ class MachineConfigFrame(wx.Dialog):
         ],
     }
 
-    def __init__(self, parent, sn: int, control_queue=None,
-                 strategy_name="frame_by_frame", title_prefix="设备参数设置"):
-        super().__init__(parent, title=f"{title_prefix} - SN[{sn}]",
-                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+    def __init__(self, parent, sn: int, control_queue=None, strategy_name="frame_by_frame", title_prefix="设备参数设置"):
+        super().__init__(parent, title=f"{title_prefix} - SN[{sn}]", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.sn = sn
         self.control_queue = control_queue
         self.strategy_name = strategy_name
@@ -109,7 +93,7 @@ class MachineConfigFrame(wx.Dialog):
             if machine_cfg.get("type") == "xn_updown":
                 keys = self.XN_UPDOWN_PARAM_KEYS
             else:
-                keys = self.FRAME_BY_FRAME_PARAM_KEYS
+                keys = self.OUT_LIFT_PARAM_KEYS
         else:
             keys = self.DEVICE_PARAM_KEYS.get(sn, [])
         return [(key, self.PARAM_LABELS[key]) for key in keys if key in self.PARAM_LABELS]
@@ -218,12 +202,7 @@ class MachineConfigFrame(wx.Dialog):
             if self._uses_dual_config_pages():
                 values["flat"] = self._collect_values(self.flat_ctrls)
 
-            save_machine_config_from_ui(
-                self.sn,
-                values,
-                self.control_queue,
-                strategy_name=self.strategy_name,
-            )
+            save_machine_config_from_ui(self.sn, values, self.control_queue, strategy_name=self.strategy_name)
             wx.MessageBox("参数已保存并生效", "成功", wx.OK | wx.ICON_INFORMATION)
             self.EndModal(wx.ID_OK)
         except Exception as e:
