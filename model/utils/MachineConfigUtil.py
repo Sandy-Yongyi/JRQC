@@ -2,7 +2,6 @@ import os
 
 from model.utils.StrategyUtil import validate_strategy_name
 
-
 MACHINE_CONFIG_FILE_BY_STRATEGY = {
     "frame_by_frame": "MachineConfig1.toml",
     "complete_workpiece": "MachineConfig2.toml",
@@ -30,15 +29,20 @@ MACHINE_OFFSET_KEYS = (
 
 
 def normalize_offset_value(value, default: int = DEFAULT_MACHINE_OFFSET) -> int:
-    """偏移缺失、无效或不大于 0 时使用安全默认值。"""
+    """偏移缺失、无效或小于 0 时使用安全默认值。"""
     try:
         offset = int(value)
     except (TypeError, ValueError):
         return int(default)
-    return offset if offset > 0 else int(default)
+    return offset if offset >= 0 else int(default)
 
 
-def get_machine_offset(machine_cfg: dict, key: str, runtime_cfg: dict | None = None, default: int = DEFAULT_MACHINE_OFFSET) -> int:
+def get_machine_offset(
+    machine_cfg: dict,
+    key: str,
+    runtime_cfg: dict | None = None,
+    default: int = DEFAULT_MACHINE_OFFSET,
+) -> int:
     """优先读取运行时偏移，并统一处理无效值。"""
     if runtime_cfg is not None and key in runtime_cfg:
         return normalize_offset_value(runtime_cfg.get(key), default)
@@ -53,14 +57,19 @@ def normalize_machine_offset_values(config: dict, fill_missing: bool = True) -> 
             normalized[key] = normalize_offset_value(normalized.get(key))
 
     flat_cfg = normalized.get("flat")
-    if isinstance(flat_cfg, dict):
-        normalized["flat"] = normalize_machine_offset_values(flat_cfg, fill_missing=fill_missing)
+    if isinstance(flat_cfg, dict) and flat_cfg:
+        normalized["flat"] = normalize_machine_offset_values(
+            flat_cfg, fill_missing=fill_missing
+        )
     return normalized
 
 
 def normalize_machine_config_offsets(machine_config: dict) -> dict:
     """归一化 MachineConfig 中每台设备的全部偏移参数。"""
-    return {str(sn): normalize_machine_offset_values(machine_cfg) for sn, machine_cfg in (machine_config or {}).items()}
+    return {
+        str(sn): normalize_machine_offset_values(machine_cfg)
+        for sn, machine_cfg in (machine_config or {}).items()
+    }
 
 
 def get_machine_config_filename(strategy_name: str) -> str:

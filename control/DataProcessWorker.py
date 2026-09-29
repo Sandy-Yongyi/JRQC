@@ -9,7 +9,7 @@ from model.dataprocess.DataSplitting import DataSplitting
 from model.utils.LoggerUtil import logger
 from model.utils.TomlLoader import TomlLoader
 from model.utils.LidarDirectionUtil import ALL_DIRECTIONS, get_active_directions
-from model.utils.StrategyUtil import is_complete_workpiece_mode, is_frame_by_frame_mode, validate_strategy_name
+from model.utils.StrategyUtil import is_frame_by_frame_mode, validate_runtime_strategy
 from model.utils.WorkpieceOriginUtil import get_origin_side, transform_points_for_origin
 from model.dataprocess.frame_by_frame.BuildSideFrame import build_side_frame
 from model.utils.ProcessHeartbeat import ProcessHeartbeat
@@ -19,15 +19,25 @@ from model.utils.ProcessHeartbeat import ProcessHeartbeat
 class DataProcessWorker(multiprocessing.Process):
     DIRECTIONS = ALL_DIRECTIONS
 
-    def __init__(self, machine_data_queue, pulse_queue, viz_queue, data_paths, data_name=None,
-                 strategy_name="frame_by_frame", config_dir=None, heartbeat=None, heartbeat_interval_s: float = 1.0):
+    def __init__(
+        self,
+        machine_data_queue,
+        pulse_queue,
+        viz_queue,
+        data_paths,
+        data_name=None,
+        strategy_name="frame_by_frame",
+        config_dir=None,
+        heartbeat=None,
+        heartbeat_interval_s: float = 1.0,
+    ):
         super().__init__()
         self.pulse_queue = pulse_queue
         self.viz_queue = viz_queue
         self.machine_data_queue = machine_data_queue
         self.data_paths = data_paths
         self.data_name = data_name
-        self.strategy_name = validate_strategy_name(strategy_name)
+        self.strategy_name = validate_runtime_strategy(strategy_name)
         self.config_dir = config_dir or (os.getcwd() + "\\model\\tomls")
         self._heartbeat = ProcessHeartbeat(heartbeat, heartbeat_interval_s)
         # 添加标准输出重定向
@@ -35,11 +45,14 @@ class DataProcessWorker(multiprocessing.Process):
         self.stderr = sys.stderr
 
         self.data_split = DataSplitting()
-        self.process_config = TomlLoader.load(f"{self.config_dir}\\ProcessConfig.toml")
-        self.read_data_config = TomlLoader.load(f"{self.config_dir}\\ReadDataConfig.toml")
+        self.read_data_config = TomlLoader.load(
+            f"{self.config_dir}\\ReadDataConfig.toml"
+        )
         self.system_config = TomlLoader.load(f"{self.config_dir}\\SystemConfig.toml")
         self.draw_type = int(self.read_data_config.get("draw_type", 1))
-        self.translate_data_origin = int(self.read_data_config.get("translate_data_origin", 1) or 1)
+        self.translate_data_origin = int(
+            self.read_data_config.get("translate_data_origin", 1) or 1
+        )
         self.directions = tuple(get_active_directions(self.system_config))
         # 存储所有帧数据
         self.all_frames = {}
@@ -78,9 +91,9 @@ class DataProcessWorker(multiprocessing.Process):
     def run(self):
         self._heartbeat.touch(force=True)
         # 重定向输出
-        if hasattr(self, 'stdout'):
+        if hasattr(self, "stdout"):
             sys.stdout = self.stdout
-        if hasattr(self, 'stderr'):
+        if hasattr(self, "stderr"):
             sys.stderr = self.stderr
 
         if is_frame_by_frame_mode(self.strategy_name):
@@ -89,10 +102,6 @@ class DataProcessWorker(multiprocessing.Process):
 
             # 主处理循环
             self._process_frames()
-            return
-
-        if is_complete_workpiece_mode(self.strategy_name):
-            self._process_complete_workpieces()
             return
 
         logger.warning(f"Unsupported debug strategy: {self.strategy_name}")
@@ -123,16 +132,24 @@ class DataProcessWorker(multiprocessing.Process):
             for direction in self.directions:
                 direction_points = points_by_source.get(direction, self._empty_points())
                 with self._heartbeat_guard():
-                    self.all_frames[direction] = self._split_points_into_frames(direction_points)
+                    self.all_frames[direction] = self._split_points_into_frames(
+                        direction_points
+                    )
             visualization_side = get_origin_side(self.read_data_config)
-            visualization_points = points_by_source.get(visualization_side, self._empty_points())
+            visualization_points = points_by_source.get(
+                visualization_side, self._empty_points()
+            )
             if visualization_points.size == 0:
-                logger.warning(f"No frame_by_frame visualization points found for configured side: {visualization_side}")
+                logger.warning(
+                    f"No frame_by_frame visualization points found for configured side: {visualization_side}"
+                )
 
         if visualization_points.size > 0:
             self._push_visualization_data(visualization_points)
 
-        frame_counts = [len(self.all_frames.get(direction, [])) for direction in self.directions]
+        frame_counts = [
+            len(self.all_frames.get(direction, [])) for direction in self.directions
+        ]
         self.max_frame_index = max(frame_counts, default=0) - 1
         logger.info(
             f"Loaded debug dataset '{dataset['name']}', translate_data_origin={self.translate_data_origin}: "
@@ -144,14 +161,17 @@ class DataProcessWorker(multiprocessing.Process):
         )
 
     def _uses_same_origin(self):
-        return int(
-            getattr(
-                self,
-                "translate_data_origin",
-                self.read_data_config.get("translate_data_origin", 1),
+        return (
+            int(
+                getattr(
+                    self,
+                    "translate_data_origin",
+                    self.read_data_config.get("translate_data_origin", 1),
+                )
+                or 1
             )
-            or 1
-        ) == 1
+            == 1
+        )
 
     def _get_point_cloud_sources(self):
         if self._uses_same_origin():
@@ -170,7 +190,7 @@ class DataProcessWorker(multiprocessing.Process):
         for source in source_names:
             prefix = f"{source}_"
             if lower_name.startswith(prefix.lower()):
-                return name[len(prefix):]
+                return name[len(prefix) :]
         return name
 
     def _discover_point_cloud_datasets(self):
@@ -198,7 +218,7 @@ class DataProcessWorker(multiprocessing.Process):
                 for source in sorted(sources, key=len, reverse=True):
                     prefix = f"{source}_"
                     if lower_file_name.startswith(prefix.lower()):
-                        dataset_names.add(file_name[len(prefix):])
+                        dataset_names.add(file_name[len(prefix) :])
                         break
             dataset_names = sorted(dataset_names)
 
@@ -257,7 +277,7 @@ class DataProcessWorker(multiprocessing.Process):
             data = data.reshape(1, -1)
         if data.shape[1] < 3:
             padded = np.zeros((data.shape[0], 3), dtype=float)
-            padded[:, :data.shape[1]] = data
+            padded[:, : data.shape[1]] = data
             data = padded
         return data[:, :3]
 
@@ -282,12 +302,14 @@ class DataProcessWorker(multiprocessing.Process):
         z_threshold = int(
             self.read_data_config.get(
                 "z_threshold",
-                self.process_config.get("z_threshold", 10),
+                10,
             )
             or 0
         )
         if z_threshold <= 0:
-            raise ValueError(f"z_threshold must be greater than 0, current value: {z_threshold}")
+            raise ValueError(
+                f"z_threshold must be greater than 0, current value: {z_threshold}"
+            )
 
         points = data[:, :3]
         relative_z = points[:, 2] - np.min(points[:, 2])
@@ -328,7 +350,9 @@ class DataProcessWorker(multiprocessing.Process):
                 if sent_count > 0:
                     last_fifo = current_fifo
                     if self.current_frame_index > self.max_frame_index:
-                        logger.info("All frames processed. Continue sending zero frames while FIFO increments...")
+                        logger.info(
+                            "All frames processed. Continue sending zero frames while FIFO increments..."
+                        )
 
             except Exception as e:
                 logger.error(f"Error in frame processing: {str(e)}")
@@ -369,8 +393,8 @@ class DataProcessWorker(multiprocessing.Process):
         while not self.pulse_queue.empty():
             try:
                 pulse_data = self.pulse_queue.get_nowait()
-                latest_pulse = pulse_data['pulse']
-                latest_fifo = pulse_data['fifo']
+                latest_pulse = pulse_data["pulse"]
+                latest_fifo = pulse_data["fifo"]
                 logger.info(f"latest_pulse is {latest_fifo}")
             except queue.Empty:
                 break
@@ -403,10 +427,11 @@ class DataProcessWorker(multiprocessing.Process):
             "repeat_count": int(repeat_count),
             "lidar_status": int(getattr(self, "lidar_status", 0) or 0),
         }
-        frame_config = dict(self.process_config)
-        frame_config.update(self.read_data_config)
+        frame_config = dict(self.read_data_config)
         for direction in self.directions:
-            frame_packet[direction] = build_side_frame(self.accum, direction, frame_config)
+            frame_packet[direction] = build_side_frame(
+                self.accum, direction, frame_config
+            )
 
         # 清除累积器（开启下一轮）
         self.accum = {direction: [] for direction in self.directions}
@@ -418,77 +443,6 @@ class DataProcessWorker(multiprocessing.Process):
             f"Sent FIFO {real_fifo_key}, repeat_count={repeat_count}, lidar_status={frame_packet['lidar_status']}: "
             f"{', '.join(self.directions)} frames to PLC"
         )
-
-    def _process_complete_workpieces(self):
-        """完整工件调试：按原点模式模拟实时采数进程发送原始数据。"""
-        datasets = self._discover_point_cloud_datasets()
-        if not datasets:
-            logger.warning(f"No complete workpiece debug dataset found in: {self.data_paths}")
-            return
-
-        for dataset in datasets:
-            self._heartbeat_touch()
-            points_by_source = self._load_dataset_points(dataset)
-            raw_data, _ = self._build_complete_raw_data(
-                points_by_source
-            )
-            if raw_data is None:
-                logger.warning(
-                    f"Empty complete workpiece dataset skipped: {dataset['name']}"
-                )
-                continue
-
-            self.machine_data_queue.put(raw_data)
-            logger.info(
-                f"Sent complete workpiece debug data: dataset={dataset['name']}, "
-                f"translate_data_origin={raw_data['translate_data_origin']}"
-            )
-
-            if self.draw_type != 2:
-                visualization_sources = (
-                    ("combined",)
-                    if self._uses_same_origin()
-                    else self.directions
-                )
-                for source in visualization_sources:
-                    visualization_points = points_by_source.get(
-                        source,
-                        self._empty_points(),
-                    )
-                    if visualization_points.size == 0:
-                        continue
-                    self._push_visualization_data(visualization_points)
-                    # time.sleep(30)
-        self._heartbeat_sleep(10000000)  # 正式进程持续刷新心跳，兼容旧调试调用
-
-    def _build_complete_raw_data(self, points_by_source):
-        raw_data = {
-            "lidar_status": int(getattr(self, "lidar_status", 0) or 0),
-            "translate_data_origin": 1 if self._uses_same_origin() else 2,
-        }
-
-        if self._uses_same_origin():
-            points = points_by_source.get("combined", self._empty_points())
-            if points.size == 0:
-                return None, self._empty_points()
-            raw_data["all_data"] = points[:, :3]
-            raw_data["all_stop_pulse"] = 0
-            for direction in self.directions:
-                raw_data[f"{direction}_stop_pulse"] = 0
-            return raw_data, points[:, :3]
-
-        visualization_arrays = []
-        for direction in self.directions:
-            points = points_by_source.get(direction, self._empty_points())
-            if points.size == 0:
-                continue
-            raw_data[f"{direction}_data"] = points[:, :3]
-            raw_data[f"{direction}_stop_pulse"] = 0
-            visualization_arrays.append(points[:, :3])
-
-        if not visualization_arrays:
-            return None, self._empty_points()
-        return raw_data, np.vstack(visualization_arrays)
 
     def _push_visualization_data(self, points):
         points_array = np.asarray(points, dtype=float)

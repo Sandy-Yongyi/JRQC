@@ -28,7 +28,9 @@ def setup_logger():
     # 创建文件处理器
     # Windows 下显式使用 UTF-8 with BOM，避免中文日志在记事本/部分查看器中出现乱码
     file_handler = logging.FileHandler(log_filepath, encoding="utf-8-sig")
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(filename)s - %(lineno)d - %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(filename)s - %(lineno)d - %(message)s"
+    )
     file_handler.setFormatter(formatter)
 
     # 注释掉控制台输出处理器 - 这样logger就不会在控制台输出
@@ -59,7 +61,9 @@ def check_and_rotate_log():
     if current_log_file and os.path.exists(current_log_file):
         file_size = os.path.getsize(current_log_file)
         if file_size > MAX_LOG_SIZE:
-            logger.info(f"Log file size ({file_size} bytes) exceeds limit, rotating log...")
+            logger.info(
+                f"Log file size ({file_size} bytes) exceeds limit, rotating log..."
+            )
             setup_logger()
 
 

@@ -1,6 +1,7 @@
 import tomllib
 import re
 import logging
+from pathlib import Path
 import tomlkit
 from typing import Dict, Any
 
@@ -16,6 +17,10 @@ class TomlLoader:
         :param debug: 是否输出调试信息
         :return: 解析后的字典
         """
+        # 已发布的采集 .pyd 仍请求旧名称；统一读取同目录的采数配置。
+        # 不再读取或要求存在 ProcessConfig.toml，即使旧文件仍在也不使用。
+        if Path(path).name.casefold() == "processconfig.toml":
+            path = str(Path(path).with_name("ReadDataConfig.toml"))
         with open(path, "rb") as f:
             raw_data = f.read()
 

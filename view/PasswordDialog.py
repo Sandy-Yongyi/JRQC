@@ -2,7 +2,7 @@ import wx
 
 
 class PasswordDialog(wx.Dialog):
-    def __init__(self, parent, account_name="河村电器", title="身份验证"):
+    def __init__(self, parent, account_name="集瑞联合重工", title="身份验证"):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE)
         self.account_name = account_name
         self.password_ctrl = None

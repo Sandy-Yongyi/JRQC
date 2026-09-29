@@ -207,7 +207,7 @@ class BaseLidar(ABC):
                 x = radius * np.sin(angles) + self.diff_origin_offset_x
                 y = -(radius * np.cos(angles)) + self.diff_origin_offset_y
             elif self.install_orietation == "right":
-                x = -(radius * np.sin(angles)) + self.diff_origin_offset_x
+                x = radius * np.sin(angles) + self.diff_origin_offset_x
                 y = radius * np.cos(angles) + self.diff_origin_offset_y
             elif self.install_orietation == "down":
                 x = radius * np.cos(angles) + self.diff_origin_offset_x

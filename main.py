@@ -25,8 +25,8 @@ def is_already_running():
 
 def disable_console_interaction():
     """安全禁用控制台交互"""
-    if sys.platform == 'win32':
-        kernel32 = ctypes.WinDLL('kernel32')
+    if sys.platform == "win32":
+        kernel32 = ctypes.WinDLL("kernel32")
         STD_INPUT_HANDLE = -10
 
         hStdin = kernel32.GetStdHandle(STD_INPUT_HANDLE)
@@ -45,10 +45,7 @@ def main():
 
     if is_already_running():
         ctypes.windll.user32.MessageBoxW(
-            0,
-            "程序已在运行中，请不要启动多个实例",
-            "错误提示",
-            0x10  # MB_ICONERROR
+            0, "程序已在运行中，请不要启动多个实例", "错误提示", 0x10  # MB_ICONERROR
         )
         logger.error("检测到已有实例运行，退出程序")
         sys.exit(1)  # 非零退出码表示异常退出
@@ -75,5 +72,5 @@ def main():
 if __name__ == "__main__":
     disable_console_interaction()
     multiprocessing.freeze_support()
-    multiprocessing.set_start_method('spawn')
+    multiprocessing.set_start_method("spawn")
     main()

@@ -1,6 +1,14 @@
 [1]
-tcp_ip = "192.168.1.100"       # PLC采用TCP方式连接的IP
-tcp_port = 2005                # PLC采用TCP方式连接的port
-udp_ip = "192.168.1.50"        # PLC采用UDP方式连接的IP
-udp_port = 6002                # PLC采用UDP方式连接的port
-connection_type = "tcp"        # 'tcp' 或 'udp'
+tcp_ip = "192.168.10.161" # PLC采用TCP方式连接的IP
+tcp_port = 20001          # PLC采用TCP方式连接的port
+udp_ip = "192.168.10.50"  # PLC采用UDP方式连接的IP
+udp_port = 6002           # PLC采用UDP方式连接的port
+connection_type = "tcp"   # 'tcp' 或 'udp'
+
+# 当前本机联调配置
+# [1]
+# tcp_ip = "127.0.0.1"    # 仅用于本机 simulation，不连接现场PLC
+# tcp_port = 5000         # simulation260705 默认监听端口
+# udp_ip = "127.0.0.1"    # 本阶段不使用UDP，保留完整配置结构
+# udp_port = 5000
+# connection_type = "tcp"

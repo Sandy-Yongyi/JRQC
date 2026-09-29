@@ -1,16 +1,12 @@
 [flake8]
 # 设置最大行长度
-max-line-length = 180
+max-line-length = 120
 
 # 忽略特定的错误和警告
-# ignore = E501
-
-# 只检查特定的文件类型
-# 追加忽略的错误
-# extend-ignore = E501, 
+extend-ignore = E203, W503
 
 # 排除特定的目录或文件
 exclude = .venv, .idea, .vscode, demo, resource, dev_test, lib
 
-# 添加额外的配置（比如启用复杂度检查）
+# 启用复杂度检查
 max-complexity = 20

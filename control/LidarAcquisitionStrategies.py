@@ -384,24 +384,33 @@ class CompleteWorkpieceStrategy(AcquisitionStrategy):
             "translate_data_origin": translate_data_origin,
         }
 
-        if translate_data_origin == 1:
-            stop_pulses = []
-            for direction, lidar_ids in proc.lidar_config.items():
-                if not lidar_ids or len(lidar_ids) == 0:
-                    logger.debug(f"Skip stop pulse collection for direction '{direction}' (no lidar configured)")
-                    continue
-                state = proc.direction_states.get(direction)
-                if not state:
-                    continue
+        direction_stop_pulses = {}
+        valid_stop_pulses = []
+        for direction, lidar_ids in proc.lidar_config.items():
+            if not lidar_ids or len(lidar_ids) == 0:
+                continue
+            state = proc.direction_states.get(direction)
+            if not state:
+                continue
+            stop_pulse = getattr(state, "stop_pulse", None)
+            direction_stop_pulses[direction] = stop_pulse
+            # None表示该方向没有完成扫描；真实脉冲0必须作为有效停止脉冲保留。
+            if stop_pulse is not None:
+                valid_stop_pulses.append(stop_pulse)
 
-                stop_pulse = getattr(state, "stop_pulse", 0) or 0
-                raw_data[f"{direction}_stop_pulse"] = stop_pulse
-                if stop_pulse:
-                    stop_pulses.append(stop_pulse)
+        common_stop_pulse = max(valid_stop_pulses) if valid_stop_pulses else 0
+
+        if translate_data_origin == 1:
+            for direction, stop_pulse in direction_stop_pulses.items():
+                if stop_pulse is None:
+                    raw_data[f"{direction}_stop_pulse"] = common_stop_pulse
+                    logger.warning(f"Direction '{direction}' did not scan; use common stop pulse {common_stop_pulse}")
+                else:
+                    raw_data[f"{direction}_stop_pulse"] = stop_pulse
 
             if isinstance(proc.all_xyz_data, np.ndarray) and proc.all_xyz_data.size > 0:
                 raw_data["all_data"] = proc.all_xyz_data
-                raw_data["all_stop_pulse"] = max(stop_pulses) if stop_pulses else 0
+                raw_data["all_stop_pulse"] = common_stop_pulse
 
             proc.raw_data_queue.put(raw_data)
             logger.info("Raw data sent to processing queue (same origin)")
@@ -415,7 +424,12 @@ class CompleteWorkpieceStrategy(AcquisitionStrategy):
             if not state:
                 continue
 
-            raw_data[f"{direction}_stop_pulse"] = getattr(state, "stop_pulse", 0) or 0
+            stop_pulse = direction_stop_pulses.get(direction)
+            if stop_pulse is None:
+                raw_data[f"{direction}_stop_pulse"] = common_stop_pulse
+                logger.warning(f"Direction '{direction}' did not scan; use common stop pulse {common_stop_pulse}")
+            else:
+                raw_data[f"{direction}_stop_pulse"] = stop_pulse
             raw_data[f"{direction}_data"] = getattr(state, "xyz_data", 0)
 
         proc.raw_data_queue.put(raw_data)

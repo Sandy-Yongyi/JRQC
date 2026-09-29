@@ -147,3 +147,15 @@ result.json
 #sonar
 sonar-project.properties
 .scannerwork/
+
+tests/*
+tools/*
+
+# Device safety-window behavior regression
+!tests/test_device_safety_windows.py
+
+# Folded terminal-rail regression and extracted contour fixture
+!tests/test_folded_terminal_rails.py
+!tests/fixtures/
+tests/fixtures/*
+!tests/fixtures/folded_terminal_rails.json

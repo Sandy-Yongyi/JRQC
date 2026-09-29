@@ -6,7 +6,7 @@ from model.motionplan.motionutil.FrameSearchHelper import FrameSearchHelper
 
 
 @dataclass(frozen=True)
-class XNUpdownStructureGeometry:
+class XNUpdown4StructureGeometry:
     has_data: bool = False
     complete: bool = False
     overall_x_min: int | None = None
@@ -24,7 +24,7 @@ class XNUpdownStructureGeometry:
 
 
 @dataclass(frozen=True)
-class XNUpdownRegionGeometry:
+class XNUpdown4RegionGeometry:
     y_min: int | None = None
     y_max: int | None = None
     x_min: int | None = None
@@ -35,8 +35,8 @@ class XNUpdownRegionGeometry:
         return None not in (self.y_min, self.y_max, self.x_min, self.x_max)
 
 
-class XNUpdownFrameSearchHelper:
-    """顶底设备按帧横梁识别和上下区域数据提取。"""
+class XNUpdown4FrameSearchHelper:
+    """旧四枪顶底设备（xn_updown4）的横梁识别和区域数据提取。"""
 
     def __init__(self, z_threshold=10, beam_ratio=0.70):
         self.z_threshold = int(z_threshold)
@@ -58,7 +58,7 @@ class XNUpdownFrameSearchHelper:
 
     def identify_structure(self, frames, window, in_up_y_offset, in_down_y_offset):
         if window is None:
-            return XNUpdownStructureGeometry()
+            return XNUpdown4StructureGeometry()
 
         valid_frames = []
         y_counts = Counter()
@@ -75,18 +75,18 @@ class XNUpdownFrameSearchHelper:
 
         valid_frame_count = len(valid_frames)
         if valid_frame_count == 0:
-            return XNUpdownStructureGeometry()
+            return XNUpdown4StructureGeometry()
 
         required_frame_count = math.ceil(valid_frame_count * self.beam_ratio)
         qualifying_y = [y_value for y_value, count in y_counts.items() if count >= required_frame_count]
         overall_x_min = min(overall_x_min_values) if overall_x_min_values else None
         if not qualifying_y:
-            return XNUpdownStructureGeometry(has_data=True, overall_x_min=overall_x_min, valid_frame_count=valid_frame_count, required_frame_count=required_frame_count)
+            return XNUpdown4StructureGeometry(has_data=True, overall_x_min=overall_x_min, valid_frame_count=valid_frame_count, required_frame_count=required_frame_count)
 
         yup = max(qualifying_y)
         ydown = min(qualifying_y)
         if yup <= ydown:
-            return XNUpdownStructureGeometry(
+            return XNUpdown4StructureGeometry(
                 has_data=True, overall_x_min=overall_x_min, yup=yup, ydown=ydown, valid_frame_count=valid_frame_count, required_frame_count=required_frame_count
             )
 
@@ -96,14 +96,14 @@ class XNUpdownFrameSearchHelper:
         up_y_values = [int(getattr(row, "H_Axis", 0) or 0) for row in all_rows if int(getattr(row, "H_Axis", 0) or 0) >= up_boundary]
         down_y_values = [int(getattr(row, "H_Axis", 0) or 0) for row in all_rows if 0 < int(getattr(row, "H_Axis", 0) or 0) <= down_boundary]
         complete = bool(up_y_values and down_y_values and overall_x_min is not None)
-        return XNUpdownStructureGeometry(has_data=True, complete=complete, overall_x_min=overall_x_min, yup=yup, ydown=ydown, ymiddle=ymiddle, up_boundary=up_boundary,
-                                         down_boundary=down_boundary, up_y_min=min(up_y_values) if up_y_values else None, up_y_max=max(up_y_values) if up_y_values else None,
-                                         down_y_min=min(down_y_values) if down_y_values else None, down_y_max=max(down_y_values) if down_y_values else None,
-                                         valid_frame_count=valid_frame_count, required_frame_count=required_frame_count)
+        return XNUpdown4StructureGeometry(has_data=True, complete=complete, overall_x_min=overall_x_min, yup=yup, ydown=ydown, ymiddle=ymiddle, up_boundary=up_boundary,
+                                          down_boundary=down_boundary, up_y_min=min(up_y_values) if up_y_values else None, up_y_max=max(up_y_values) if up_y_values else None,
+                                          down_y_min=min(down_y_values) if down_y_values else None, down_y_max=max(down_y_values) if down_y_values else None,
+                                          valid_frame_count=valid_frame_count, required_frame_count=required_frame_count)
 
     def collect_region(self, frames, window, y_min=None, y_max=None):
         if window is None:
-            return XNUpdownRegionGeometry()
+            return XNUpdown4RegionGeometry()
         y_values = []
         x_min_values = []
         x_max_values = []
@@ -121,8 +121,8 @@ class XNUpdownFrameSearchHelper:
                     x_min_values.append(x_min)
                 if x_max != 0:
                     x_max_values.append(x_max)
-        return XNUpdownRegionGeometry(y_min=min(y_values) if y_values else None, y_max=max(y_values) if y_values else None,
-                                      x_min=min(x_min_values) if x_min_values else None, x_max=max(x_max_values) if x_max_values else None)
+        return XNUpdown4RegionGeometry(y_min=min(y_values) if y_values else None, y_max=max(y_values) if y_values else None,
+                                       x_min=min(x_min_values) if x_min_values else None, x_max=max(x_max_values) if x_max_values else None)
 
     def has_data_in_y_band(self, frames, window, y_min, y_max):
         if window is None:

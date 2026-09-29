@@ -182,7 +182,10 @@ class MainFrame(wx.Frame):
         status_label.SetFont(wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         status_label.SetForegroundColour(wx.BLACK)
 
-        button_rows = (((0, "左侧顶底设备(SN0)"), (1, "右侧顶底设备(SN1)")), ((2, "左侧二维设备(SN2)"), (3, "右侧二维设备(SN3)")))
+        button_rows = (
+            ((2, "左侧二维"), (3, "右侧二维")),
+            ((0, "左侧云雀"), (1, "右侧云雀")),
+        )
         button_sizers = []
         for row in button_rows:
             row_sizer = wx.BoxSizer(wx.HORIZONTAL)

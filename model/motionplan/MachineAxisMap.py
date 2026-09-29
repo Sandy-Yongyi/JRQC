@@ -1,136 +1,213 @@
-"""
-设备轴索引映射配置模块。
+"""设备轴索引和设备限位数组映射。
 
-根据当前策略对应 MachineConfig1/2/3.toml 的 type 和 install_orietation，查找 PLC AxisList
-中对应的轴索引。JRQC 按帧模式设备顺序：
-
-    sn=0 xn_updown left  : 0~6   (y1, x1, y2, x2, y3, x3, x4)
-    sn=1 xn_updown right : 7~13  (y1, x1, y2, x2, y3, x3, x4)
-    sn=2 out_lift left   : 独立 Left2DLiftData，反馈 AxisList[14]
-    sn=3 out_lift right  : 独立 Right2DLiftData，反馈 AxisList[15]
-
-旧设备映射继续保留，供 MachineConfig2/3 对应的代码能力使用。
+轴槽属于已经确认的PLC线协议。侧面云雀左右各占7个普通轴槽，
+左右2D变频设备分别使用两个专用AxisData槽位。
 """
 
 from model.utils.LoggerUtil import logger
-from model.motionplan.motionutil.AxisLimits import clamp_speed, clamp_to_limit_yx
-from model.plc.MovingFrameData import AxisData
 
 
-AXIS_LIMIT_KEY: dict[str, dict[str, int]] = {"xn_updown": {"y": 0, "x": 1}}
+# max_limit_speed / min_limit_pos / max_limit_pos / safe_pos 数组顺序。
+AXIS_LIMIT_KEY: dict[str, dict[str, int]] = {
+    "xn_side": {"y": 0, "x": 1},
+    "out_lift": {"y": 0, "x": 1},
+}
 
 
 def get_axis_config_index(machine_type: str, axis_name: str) -> int | None:
-    """获取轴在 max_limit_speed / min_limit_pos / max_limit_pos 中的索引。"""
+    """获取轴在设备限速、限位数组中的索引。"""
+
     limit_key = AXIS_LIMIT_KEY.get(machine_type, {})
     if axis_name.startswith("x"):
         lookup = "x"
     elif axis_name.startswith("y"):
         lookup = "y"
-    elif axis_name.startswith("r"):
-        lookup = "r"
     else:
         lookup = axis_name
     return limit_key.get(lookup)
 
 
-def get_axis_config_value(machine_cfg: dict, axis_name: str, config_key: str, default: int = 0) -> int:
-    """按设备通用轴定义读取配置值，如 safe_pos / max_limit_speed / min_limit_pos / max_limit_pos。"""
-    machine_type = machine_cfg.get("type", "")
-    idx = get_axis_config_index(machine_type, axis_name)
-    values = machine_cfg.get(config_key, [])
-    if idx is not None and isinstance(values, (list, tuple)) and idx < len(values):
-        return int(values[idx] or 0)
+def get_axis_config_value(
+    machine_config: dict,
+    axis_name: str,
+    config_key: str,
+    default: int = 0,
+) -> int:
+    """按设备轴类别读取限速、限位或安全位。"""
+
+    index = get_axis_config_index(machine_config.get("type", ""), axis_name)
+    values = machine_config.get(config_key, [])
+    if (
+        index is not None
+        and isinstance(values, (list, tuple))
+        and index < len(values)
+    ):
+        return int(values[index] or 0)
     return default
 
 
-def get_axis_speed_limit(machine_cfg: dict, axis_name: str, default: int = 300) -> int:
+def get_axis_speed_limit(
+    machine_config: dict,
+    axis_name: str,
+    default: int = 300,
+) -> int:
     """获取设备指定轴的最大速度。"""
-    return get_axis_config_value(machine_cfg, axis_name, "max_limit_speed", default)
+
+    return get_axis_config_value(
+        machine_config,
+        axis_name,
+        "max_limit_speed",
+        default,
+    )
 
 
-def get_axis_position_limits(machine_cfg: dict, axis_name: str, default_min: int = 0, default_max: int = 1000) -> tuple[int, int]:
-    """获取设备指定轴的位置最小/最大限位。"""
-    min_limit = get_axis_config_value(machine_cfg, axis_name, "min_limit_pos", default_min)
-    max_limit = get_axis_config_value(machine_cfg, axis_name, "max_limit_pos", default_max)
-    return min_limit, max_limit
+def get_axis_position_limits(
+    machine_config: dict,
+    axis_name: str,
+    default_min: int = 0,
+    default_max: int = 1000,
+) -> tuple[int, int]:
+    """获取设备指定轴的位置最小、最大限位。"""
+
+    return (
+        get_axis_config_value(
+            machine_config, axis_name, "min_limit_pos", default_min
+        ),
+        get_axis_config_value(
+            machine_config, axis_name, "max_limit_pos", default_max
+        ),
+    )
 
 
-def get_axis_safe_pos(machine_cfg: dict, axis_name: str, default: int = 0) -> int:
-    """获取设备指定轴的安全位置。"""
-    return get_axis_config_value(machine_cfg, axis_name, "safe_pos", default)
+def get_axis_safe_pos(
+    machine_config: dict,
+    axis_name: str,
+    default: int = 0,
+) -> int:
+    """获取设备指定轴的安全位。"""
+
+    return get_axis_config_value(
+        machine_config,
+        axis_name,
+        "safe_pos",
+        default,
+    )
 
 
-MACHINE_AXIS_MAP = {"xn_updown": {"left": dict(y1=0, x1=1, y2=2, x2=3, y3=4, x3=5, x4=6),
-                                  "right": dict(y1=7, x1=8, y2=9, x2=10, y3=11, x3=12, x4=13)}}
+MACHINE_AXIS_MAP = {
+    # 喷枪从下往上排列，枪4只有X轴。
+    # axis_type: ["y1", "x1", "y2", "x2", "y3", "x3", "x4"]
+    "xn_side": {
+        "left": dict(
+            y1=0, x1=1,
+            y2=2, x2=3,
+            y3=4, x3=5,
+            x4=6,
+        ),
+        "right": dict(
+            y1=7, x1=8,
+            y2=9, x2=10,
+            y3=11, x3=12,
+            x4=13,
+        ),
+    },
+    # axis_type: ["y", "x"]；线协议中Y/X共用一个二维专用槽位。
+    "out_lift": {
+        "left": dict(y=14),
+        "right": dict(y=15),
+    },
+}
 
 
 def get_axis_map(machine_type: str, orientation: str) -> dict:
-    """获取指定设备类型和安装方向的完整轴映射字典。"""
+    """获取指定设备类型和安装方向的完整轴槽映射。"""
+
     if machine_type not in MACHINE_AXIS_MAP:
-        raise ValueError(f"未知设备类型: {machine_type}, 可用类型: {list(MACHINE_AXIS_MAP.keys())}")
+        raise ValueError(
+            f"未知设备类型: {machine_type}, "
+            f"可用类型: {list(MACHINE_AXIS_MAP)}"
+        )
     type_map = MACHINE_AXIS_MAP[machine_type]
     if orientation not in type_map:
-        raise ValueError(f"设备 '{machine_type}' 不支持方向 '{orientation}', 可用方向: {list(type_map.keys())}")
+        raise ValueError(
+            f"设备 '{machine_type}' 不支持方向 '{orientation}', "
+            f"可用方向: {list(type_map)}"
+        )
     return type_map[orientation]
 
 
-def get_axis_index(machine_type: str, orientation: str, axis_name: str) -> int:
-    """获取指定设备某个轴在 PLC AxisList 中的索引。"""
+def get_axis_index(
+    machine_type: str,
+    orientation: str,
+    axis_name: str,
+) -> int:
+    """获取一个设备轴在PLC AxisList中的索引。"""
+
     axis_map = get_axis_map(machine_type, orientation)
     if axis_name not in axis_map:
-        raise ValueError(f"轴 '{axis_name}' 不存在于 {machine_type}/{orientation}, 可用轴: {list(axis_map.keys())}")
+        raise ValueError(
+            f"轴 '{axis_name}' 不存在于 {machine_type}/{orientation}, "
+            f"可用轴: {list(axis_map)}"
+        )
     return axis_map[axis_name]
 
 
 def get_x_axes(machine_type: str, orientation: str) -> dict:
-    """获取所有 X 类轴的名称到 PLC 索引映射。"""
-    axis_map = get_axis_map(machine_type, orientation)
-    return {k: v for k, v in axis_map.items() if k.startswith("x")}
+    """获取设备所有X轴的名称到PLC索引映射。"""
+
+    return {
+        name: index
+        for name, index in get_axis_map(machine_type, orientation).items()
+        if name.startswith("x")
+    }
 
 
 def has_axis(machine_type: str, orientation: str, axis_name: str) -> bool:
-    """判断指定设备是否拥有某个轴。"""
-    axis_map = get_axis_map(machine_type, orientation)
-    return axis_name in axis_map
+    """判断指定设备是否具有某个轴。"""
+
+    return axis_name in get_axis_map(machine_type, orientation)
 
 
-def get_all_axis_indices(machine_type: str, orientation: str) -> list:
-    """获取指定设备所有轴的 PLC 索引列表。"""
+def get_all_axis_indices(machine_type: str, orientation: str) -> list[int]:
+    """获取指定设备占用的全部PLC轴索引。"""
+
     return list(get_axis_map(machine_type, orientation).values())
 
 
-def _limit_axis_command(machine_cfg: dict, axis_name: str, axis_data: AxisData) -> AxisData:
-    """在写入 PLC 报文前统一限制单轴位置和速度。"""
-    min_position, max_position = get_axis_position_limits(machine_cfg, axis_name)
-    if min_position > max_position:
-        raise ValueError(f"轴 {axis_name} 的位置限位无效: {min_position} > {max_position}")
-    max_speed = get_axis_speed_limit(machine_cfg, axis_name)
-    return AxisData(Pos=clamp_to_limit_yx(int(axis_data.Pos), min_position, max_position), Speed=clamp_speed(int(axis_data.Speed), max_speed), Status=int(axis_data.Status))
+def apply_to_axis_list(
+    machine_data: dict,
+    machine_type: str,
+    orientation: str,
+    axis_list: list,
+) -> None:
+    """把按轴名组织的普通轴指令写入PLC AxisList。"""
 
-
-def apply_to_axis_list(machine_data: dict, machine_cfg: dict, axis_list: list):
-    """将设备运动指令字典应用到 PLC AxisList 中。"""
-    machine_type = machine_cfg.get("type", "")
-    orientation = machine_cfg.get("install_orietation", "left")
     axis_map = get_axis_map(machine_type, orientation)
     for axis_name, axis_data in machine_data.items():
         if axis_name in axis_map:
-            idx = axis_map[axis_name]
-            axis_list[idx] = _limit_axis_command(machine_cfg, axis_name, axis_data)
-        elif axis_name == "y":
-            for mapped_axis, idx in axis_map.items():
-                if mapped_axis.startswith("y"):
-                    axis_list[idx] = _limit_axis_command(machine_cfg, mapped_axis, axis_data)
+            axis_list[axis_map[axis_name]] = axis_data
 
 
-def apply_device_axes_to_list(machine_config: dict, sn: int, axis_cmds: dict, axis_list: list):
-    """按设备配置将单台设备的轴运动指令写入 AxisList。"""
-    machine_cfg = machine_config.get(str(sn))
-    if not machine_cfg:
+def apply_device_axes_to_list(
+    machine_config: dict,
+    sn: int,
+    axis_commands: dict,
+    axis_list: list,
+) -> None:
+    """根据设备SN和安装方向写入普通AxisList槽位。"""
+
+    config = machine_config.get(str(sn))
+    if not config:
         return
-
+    machine_type = config.get("type", "")
+    if machine_type == "out_lift":
+        return
     try:
-        apply_to_axis_list(axis_cmds, machine_cfg, axis_list)
-    except Exception as e:
-        logger.error(f"将 SN[{sn}] 的轴数据应用到 AxisList 时出错: {e}")
+        apply_to_axis_list(
+            axis_commands,
+            machine_type,
+            config.get("install_orietation", "left"),
+            axis_list,
+        )
+    except Exception as exc:
+        logger.error(f"将 SN[{sn}] 的轴数据应用到 AxisList 时出错: {exc}")

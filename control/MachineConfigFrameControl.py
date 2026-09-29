@@ -1,8 +1,18 @@
 import os
+from model.utils.MachineSafetyWindow import (
+    WINDOW_KEYS, machine_window_bounds, with_machine_window_defaults,
+)
 from model.utils.TomlLoader import TomlLoader
 from model.utils.LoggerUtil import logger
-from model.utils.MachineConfigUtil import get_machine_config_path, normalize_machine_offset_values, validate_machine_params
-from model.motionplan.MachineAxisMap import get_axis_position_limits, get_axis_speed_limit
+from model.utils.MachineConfigUtil import (
+    get_machine_config_path,
+    normalize_machine_offset_values,
+    validate_machine_params,
+)
+from model.motionplan.MachineAxisMap import (
+    get_axis_position_limits,
+    get_axis_speed_limit,
+)
 
 
 def _load_range(cfg: dict, key: str, default_min: int, default_max: int):
@@ -12,15 +22,21 @@ def _load_range(cfg: dict, key: str, default_min: int, default_max: int):
 def _get_param_range_rules(sn: int | None = None, strategy_name="frame_by_frame"):
     """加载参数范围。距离类来自 SprayConfig，速度类来自当前设备 max_limit_speed。"""
     spray_config_path = os.path.join(os.getcwd(), "model", "tomls", "SprayConfig.toml")
-    machine_cfg = load_machine_config_for_ui(sn, strategy_name) if sn is not None else {}
+    machine_cfg = (
+        load_machine_config_for_ui(sn, strategy_name) if sn is not None else {}
+    )
     x_speed_max = get_axis_speed_limit(machine_cfg, "x", 620) if machine_cfg else 620
     y_speed_max = get_axis_speed_limit(machine_cfg, "y", 590) if machine_cfg else 590
     z_speed_max = get_axis_speed_limit(machine_cfg, "z", 240) if machine_cfg else 240
-    y_pos_min, y_pos_max = get_axis_position_limits(machine_cfg, "y", 0, 430) if machine_cfg else (0, 430)
+    y_pos_min, y_pos_max = (
+        get_axis_position_limits(machine_cfg, "y", 0, 430) if machine_cfg else (0, 430)
+    )
 
     try:
         spray_cfg = TomlLoader.load(spray_config_path)
         return {
+            **{key: _load_range(spray_cfg, key, 0, 1000)
+               for keys in WINDOW_KEYS.values() for key in keys},
             "tracking": (0, 1),
             "y_move_min": (y_pos_min, y_pos_max),
             "y_move_max": (y_pos_min, y_pos_max),
@@ -40,20 +56,29 @@ def _get_param_range_rules(sn: int | None = None, strategy_name="frame_by_frame"
             "y_recip_speed": (0, y_speed_max),
             "out_z_front_offset": _load_range(spray_cfg, "out_z_front_offset", 50, 300),
             "out_z_after_offset": _load_range(spray_cfg, "out_z_after_offset", 50, 300),
-            "search_front_z_offset": _load_range(spray_cfg, "search_front_z_offset", 500, 1000),
-            "search_after_z_offset": _load_range(spray_cfg, "search_after_z_offset", 500, 1000),
+            "search_front_z_offset": _load_range(
+                spray_cfg, "search_front_z_offset", 500, 1000
+            ),
+            "search_after_z_offset": _load_range(
+                spray_cfg, "search_after_z_offset", 500, 1000
+            ),
             "in_z_front_offset": _load_range(spray_cfg, "in_z_front_offset", 50, 300),
             "in_z_after_offset": _load_range(spray_cfg, "in_z_after_offset", 50, 300),
             "z_back_speed": (0, z_speed_max),
             "z_zeroing_speed": (0, z_speed_max),
-            "outside_total_cycles": _load_range(spray_cfg, "outside_total_cycles", 1, 5),
+            "outside_total_cycles": _load_range(
+                spray_cfg, "outside_total_cycles", 1, 5
+            ),
             "inside_total_cycles": _load_range(spray_cfg, "inside_total_cycles", 1, 5),
-            "recip_reduce_distance": _load_range(spray_cfg, "recip_reduce_distance", 0, 300),
+            "recip_reduce_distance": _load_range(
+                spray_cfg, "recip_reduce_distance", 0, 300
+            ),
         }
     except Exception as e:
         # 如果加载失败，使用默认值
         logger.info(f"load SprayConfig.toml failed, use default param ranges: {e}")
         return {
+            **{key: (0, 1000) for keys in WINDOW_KEYS.values() for key in keys},
             "tracking": (0, 1),
             "y_move_min": (y_pos_min, y_pos_max),
             "y_move_max": (y_pos_min, y_pos_max),
@@ -104,8 +129,10 @@ def _normalize_origin_pos_for_ui(cfg: dict) -> dict:
 def _normalize_config_for_ui(cfg: dict) -> dict:
     normalized = normalize_machine_offset_values(_normalize_origin_pos_for_ui(cfg))
     flat_cfg = normalized.get(FLAT_CONFIG_KEY)
-    if isinstance(flat_cfg, dict):
-        normalized[FLAT_CONFIG_KEY] = normalize_machine_offset_values(_normalize_origin_pos_for_ui(flat_cfg))
+    if isinstance(flat_cfg, dict) and flat_cfg:
+        normalized[FLAT_CONFIG_KEY] = normalize_machine_offset_values(
+            _normalize_origin_pos_for_ui(flat_cfg)
+        )
     return normalized
 
 
@@ -117,23 +144,35 @@ def _normalize_origin_pos_for_save(values: dict) -> dict:
 
 
 def _normalize_ui_values_for_save(values: dict) -> dict:
-    normalized = normalize_machine_offset_values(_normalize_origin_pos_for_save(values))
+    normalized = normalize_machine_offset_values(
+        _normalize_origin_pos_for_save(values), fill_missing=False
+    )
     flat_values = normalized.get(FLAT_CONFIG_KEY)
     if isinstance(flat_values, dict):
-        normalized[FLAT_CONFIG_KEY] = normalize_machine_offset_values(_normalize_origin_pos_for_save(flat_values))
+        normalized[FLAT_CONFIG_KEY] = normalize_machine_offset_values(
+            _normalize_origin_pos_for_save(flat_values), fill_missing=False
+        )
     return normalized
 
 
 def load_machine_config_for_ui(sn: int, strategy_name="frame_by_frame") -> dict:
     cfg = TomlLoader.load(_get_toml_path(strategy_name))
-    return _normalize_config_for_ui(cfg.get(str(sn), {}))
+    machine = _normalize_config_for_ui(cfg.get(str(sn), {}))
+    return with_machine_window_defaults(machine) if strategy_name == "frame_by_frame" else machine
 
 
-def save_machine_config_from_ui(sn: int, values: dict, control_queue=None, strategy_name="frame_by_frame"):
+def save_machine_config_from_ui(
+    sn: int, values: dict, control_queue=None, strategy_name="frame_by_frame"
+):
     """保存机器配置并通知PLC进程"""
     param_range_rules = _get_param_range_rules(sn, strategy_name)
     _validate_params(values, param_range_rules)
     normalized_values = _normalize_ui_values_for_save(values)
+    if strategy_name == "frame_by_frame":
+        machine = {**load_machine_config_for_ui(sn, strategy_name), **normalized_values}
+        read_config = TomlLoader.load(os.path.join(os.getcwd(), "model", "tomls", "ReadDataConfig.toml"))
+        machine_window_bounds(machine, read_config["frame_by_frame_queue_size"])
+        normalized_values.update({key: machine[key] for key in WINDOW_KEYS[machine["type"]]})
     toml_path = _get_toml_path(strategy_name)
     _save_to_toml(sn, normalized_values, toml_path)
     if control_queue is not None:

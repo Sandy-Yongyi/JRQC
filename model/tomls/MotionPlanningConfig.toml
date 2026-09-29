@@ -1,0 +1,22 @@
+# 逐帧运动规划参数。
+# 设备原点、速度、常规行程偏移和限位仍由 MachineConfig.toml 管理；
+# 点云分层间距仍由 ReadDataConfig.toml 管理。
+
+[frame_by_frame]
+short_stroke_threshold_mm = 130     # 常规行程偏移后安全约束后的X行程不超过此值时固定喷涂，独立于到位容差；非负整数mm，0仅匹配零行程
+idle_return_distance_mm = 1000      # 设备后方（朝激光/来料方向）的无工件回安全位检查距离，必须是10mm的正整数倍
+x_arrival_confirmations = 1         # PLC实际位置连续到位确认次数
+short_stroke_x_offset_mm = 200      # 短行程固定点统一偏移：窗口最小X-设备X原点-此值，左右所有枪共用，非负整数mm
+x_position_tolerance_mm = 20        # X轴及顺序定位轴组到位容差(mm)，连续确认次数由x_arrival_confirmations配置
+minimum_gun_y_distance_mm = 300     # 相邻喷枪最小绝对Y距离，单位mm
+
+[frame_by_frame.geometry]
+minimum_x_change_mm = 50            # 轮廓边缘最小X变化量，判断 X 轮廓是否发生了足够明显的变化，单位mm
+minimum_run_layers = 4              # 连续边缘的最少Y层数，X 轮廓变化必须连续存在这么多个 Y 层，才算有效边缘
+smoothing_window = 11               # 轮廓平滑窗口，必须为正奇数，smoothing_window个连续 Z 帧。逐帧队列一格为10mm，因此覆盖约110mm的采样范围；以当前帧为中心，就是前后各约50mm
+minimum_middle_coverage = 0.5       # 中间区域最小有效覆盖率，范围0~1，判断上下横梁之间是否存在足够完整的中间轮廓
+narrow_width_mm = 80                # 狭窄区域宽度阈值，宽度大于等于它的连续层用于识别上下横梁；上下横梁之间宽度小于等于它的层用于估计中间区域，单位mm
+minimum_horizontal_layers = 1       # 薄水平区域（横梁）最少层数；普通轮廓仍使用minimum_run_layers
+rail_padding_layers = 5             # 横梁上下区域向外扩展层数
+middle_trim_layers = 5              # 中间区域首尾裁剪层数
+gun_obstacle_half_height_mm = 70    # 四把枪最终下发绝对高度上下各检查的距离，闭区间，单位mm

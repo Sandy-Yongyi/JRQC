@@ -50,3 +50,11 @@ def is_continuous_bidirectional_mode(strategy_name: str) -> bool:
     """是否为连续双向模式。"""
     validate_strategy_name(strategy_name)
     return strategy_name == CONTINUOUS_BIDIRECTIONAL_STRATEGY
+
+
+def validate_runtime_strategy(strategy_name: str) -> str:
+    """Reject the removed complete-workpiece pipeline before starting workers."""
+    validate_strategy_name(strategy_name)
+    if strategy_name == COMPLETE_WORKPIECE_STRATEGY:
+        raise ValueError("完整工件模式已停用，请选择逐帧或连续双向模式")
+    return strategy_name
