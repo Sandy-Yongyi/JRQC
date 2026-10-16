@@ -1,11 +1,12 @@
 import os
 import glob
 from model.utils.LoggerUtil import logger
+from model.utils.ProjectPaths import POINTS_DIR
 
 
 def manage_points_files(max_files=1000):
     # 设置目标目录
-    points_directory = os.path.join(os.getcwd() + '\\data\\points')
+    points_directory = str(POINTS_DIR)
 
     # 创建目录（如果不存在）
     if not os.path.exists(points_directory):

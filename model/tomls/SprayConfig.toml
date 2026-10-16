@@ -34,11 +34,11 @@ in_down_y_offset_max = 300
 origin_pos_min = 1000
 origin_pos_max = 4000
 
-# 云雀front：来料方向/提前出枪距离范围mm（左右共用）
+# 云雀front：出料方向/延后收枪距离范围mm（左右共用）
 yunque_safety_window_front_mm_min = 100
 yunque_safety_window_front_mm_max = 500
 
-# 云雀back：出料方向/延后收枪距离范围mm（左右共用）
+# 云雀back：来料方向/提前出枪距离范围mm（左右共用）
 yunque_safety_window_back_mm_min = 100
 yunque_safety_window_back_mm_max = 500
 

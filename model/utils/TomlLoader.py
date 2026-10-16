@@ -1,7 +1,10 @@
 import tomllib
 import re
 import logging
+import codecs
+import os
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 import tomlkit
 from typing import Dict, Any
 
@@ -27,11 +30,7 @@ class TomlLoader:
             if debug:
                 logging.info(f"toml head file: {raw_data[:16].hex(' ')}")
 
-            # 移除BOM头
-            cleaned_data = TomlLoader._remove_bom(raw_data)
-
-            # 解码内容
-            content = TomlLoader._safe_decode(cleaned_data)
+            content = TomlLoader._decode_bytes(raw_data)
 
             # 清理开头特殊字符
             content = re.sub(r"^[\x00-\x1F]+", "", content)
@@ -53,8 +52,8 @@ class TomlLoader:
         :param path: 文件路径
         """
         # 首先读取现有文件内容
-        with open(path, 'r', encoding='utf-8') as f:
-            doc = tomlkit.parse(f.read())
+        target = Path(path)
+        doc = tomlkit.parse(TomlLoader._decode_bytes(target.read_bytes()))
 
         # data的结构应该是 {sn: {key: value}} 或直接 {key: value}
         if isinstance(data, dict):
@@ -73,14 +72,40 @@ class TomlLoader:
                 for key, value in data.items():
                     doc[key] = value
 
-        # 保存回文件
-        with open(path, 'w', encoding='utf-8') as f:
-            f.write(tomlkit.dumps(doc))
+        # 在同一目录完成原子替换，写入失败时保留原文件。
+        temporary_path = None
+        try:
+            with NamedTemporaryFile(
+                mode="w", encoding="utf-8", newline="", dir=target.parent,
+                prefix=f".{target.name}.", suffix=".tmp", delete=False,
+            ) as temporary:
+                temporary_path = Path(temporary.name)
+                temporary.write(tomlkit.dumps(doc))
+                temporary.flush()
+                os.fsync(temporary.fileno())
+            os.replace(temporary_path, target)
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+
+    @staticmethod
+    def _decode_bytes(data: bytes) -> str:
+        """先识别完整 BOM，避免 UTF-32 被误判为 UTF-16 或 UTF-8。"""
+        for bom, encoding in (
+            (codecs.BOM_UTF32_LE, "utf-32"),
+            (codecs.BOM_UTF32_BE, "utf-32"),
+            (codecs.BOM_UTF16_LE, "utf-16"),
+            (codecs.BOM_UTF16_BE, "utf-16"),
+            (codecs.BOM_UTF8, "utf-8-sig"),
+        ):
+            if data.startswith(bom):
+                return data.decode(encoding)
+        return TomlLoader._safe_decode(data)
 
     @staticmethod
     def _remove_bom(data: bytes) -> bytes:
         """移除各种BOM头"""
-        boms = {b"\xef\xbb\xbf": 3, b"\xff\xfe": 2, b"\xfe\xff": 2, b"\xff\xfe\x00\x00": 4, b"\x00\x00\xfe\xff": 4}
+        boms = {b"\xff\xfe\x00\x00": 4, b"\x00\x00\xfe\xff": 4, b"\xef\xbb\xbf": 3, b"\xff\xfe": 2, b"\xfe\xff": 2}
         # UTF-8  # UTF-16 LE  # UTF-16 BE  # UTF-32 LE  # UTF-32 BE
 
         for bom, length in boms.items():

@@ -20,7 +20,7 @@ class PlcCycleTiming:
             owner = threading.get_ident()
             starts = {}
 
-            def callback(phase, info):
+            def on_gc(phase, info):
                 if threading.get_ident() != owner:
                     return
                 generation = info["generation"]
@@ -35,6 +35,7 @@ class PlcCycleTiming:
                     values[1] += (time.thread_time() - started_cpu) * 1000
                     values[2] += 1
 
+            callback = on_gc
             gc.callbacks.append(callback)
         try:
             yield

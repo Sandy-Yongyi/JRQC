@@ -1,18 +1,17 @@
 [0]
 sn = 0                                                 # 编号
 type = "xn_side"                                       # 机型,xn_side为侧面云雀,out_lift为外侧二维往复机
-yunque_safety_window_front_mm = 220                    # 云雀front：安全包络/提前出枪距离，10mm的非负整数倍
-yunque_safety_window_back_mm = 220                     # 云雀back：安全包络/延后收枪距离，10mm的非负整数倍
+yunque_safety_window_front_mm = 220                    # 云雀front：出料方向安全包络/延后收枪距离，10mm的非负整数倍
+yunque_safety_window_back_mm = 220                     # 云雀back：来料方向X安全包络，Y待料检查整段来料队列，10mm的非负整数倍
 x_position = 1540                                      # 原点相对于安装方向激光原点定位X,单位mm
 z_position = 5410                                      # 原点相对于安装方向激光原点定位Z,单位mm
 spray_num = 4                                          # 喷枪数
 axis_type = ["y1", "x1", "y2", "x2", "y3", "x3", "x4"] # 轴类型
 spray_radius = 80                                      # 喷枪半径
-out_front_x_offset = 50                                # 外侧前X轴偏移 （外上下边Xmax-out_front_x_offset）
+out_front_x_offset = 100                                # 外侧前X轴偏移 （外上下边Xmax-out_front_x_offset）
 out_after_x_offset = 100                               # 外侧后X轴偏移 （外上下边Xmin-out_after_x_offset）
-in_front_x_offset = 50                                 # 内侧前X轴偏移 （内上下边Xmax-in_front_x_offset）
+in_front_x_offset = 100                                 # 内侧前X轴偏移 （内上下边Xmax-in_front_x_offset）
 in_after_x_offset = 100                                # 内侧后X轴偏移 （内上下边Xmin-in_after_x_offset）
-out_up_y_offset = 250                                  # 外侧上顶Y轴偏移 （外上边Y+out_up_y_offset）
 out_down_y_offset = 170                                # 外侧下底Y轴偏移 （外下边Y-out_down_y_offset）
 in_up_y_offset = 170                                   # 内侧上顶Y轴偏移 （内上边Y-in_up_y_offset）
 in_down_y_offset = 250                                 # 内侧下底Y轴偏移 （内下边Y+in_down_y_offset）
@@ -25,23 +24,23 @@ min_limit_pos = [0, 0]                                 # 最小限位[y,x]
 max_limit_pos = [1500, 750]                            # 最大限位[y,x]
 origin_pos = [1000, 1700, 2300, 3060]                  # 每把喷枪Y轴原点位置,枪1至枪4，单位mm
 safe_pos = [0, 0]                                      # 安全位置[y,x]
+out_up_y_offset = 250
 
 [0.flat]
 [1]
 sn = 1                                                 # 编号
 type = "xn_side"                                       # 机型,xn_side为侧面云雀,out_lift为外侧二维往复机
-yunque_safety_window_front_mm = 200                    # 云雀front：来料方向安全包络/提前出枪距离，10mm的非负整数倍
-yunque_safety_window_back_mm = 200                     # 云雀back：出料方向安全包络/延后收枪距离，10mm的非负整数倍
+yunque_safety_window_front_mm = 200                    # 云雀front：出料方向安全包络/延后收枪距离，10mm的非负整数倍
+yunque_safety_window_back_mm = 200                     # 云雀back：来料方向X安全包络，Y待料检查整段来料队列，10mm的非负整数倍
 x_position = 1380                                      # 原点相对于安装方向激光原点定位X,单位mm
 z_position = 5110                                      # 原点相对于安装方向激光原点定位Z,单位mm
 spray_num = 4                                          # 喷枪数
 axis_type = ["y1", "x1", "y2", "x2", "y3", "x3", "x4"] # 轴类型
 spray_radius = 80                                      # 喷枪半径
-out_front_x_offset = 50                                # 外侧前X轴偏移
+out_front_x_offset = 100                                # 外侧前X轴偏移
 out_after_x_offset = 100                               # 外侧后X轴偏移
-in_front_x_offset = 50                                 # 内侧前X轴偏移
+in_front_x_offset = 100                                 # 内侧前X轴偏移
 in_after_x_offset = 100                                # 内侧后X轴偏移
-out_up_y_offset = 250                                  # 外侧上顶Y轴偏移
 out_down_y_offset = 170                                # 外侧下底Y轴偏移
 in_up_y_offset = 170                                   # 内侧上顶Y轴偏移
 in_down_y_offset = 250                                 # 内侧下底Y轴偏移
@@ -54,6 +53,7 @@ min_limit_pos = [0, 0]                                 # 最小限位
 max_limit_pos = [1500, 750]                            # 最大限位
 origin_pos = [1000, 1700, 2300, 3060]                  # 每把喷枪Y轴原点位置,枪1至枪4，单位mm
 safe_pos = [0, 0]                                      # 安全位置
+out_up_y_offset = 250
 
 [1.flat]
 [2]

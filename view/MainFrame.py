@@ -1,8 +1,5 @@
 import wx
 import os
-# import sys
-# # 将项目的根目录添加到 sys.path 中
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from model.plot.PointCloudCanvas import PointCloudCanvas
 
 

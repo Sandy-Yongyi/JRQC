@@ -1,0 +1,5 @@
+# Build tools; requires the corresponding .pyd sources to rebuild them.
+-r requirements.txt
+Cython~=3.0.11
+Nuitka~=2.5.8
+setuptools~=65.5.0

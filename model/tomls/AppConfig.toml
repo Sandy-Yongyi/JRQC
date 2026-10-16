@@ -1,0 +1,8 @@
+# 启动模式：replay=离线点云回放，acquisition=实时采集，plot=仅查看点云。
+# replay 仍按 PlcConfig.toml 连接 PLC；离线查看可使用 tools 下的查看器。
+run_mode = "acquisition"
+
+# 只填写文件后缀名；DataProcessWorker 会匹配 combined_ / left_ / right_ 前缀。
+# 点云目录固定为项目下 data/points，绘图目录为 data/temp。
+replay_file = "20260923_133240.txt"
+plot_file = "20260915_151856.txt"

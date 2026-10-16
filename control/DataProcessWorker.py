@@ -1,4 +1,5 @@
 import os
+from model.utils.ProjectPaths import CONFIG_DIR
 import queue
 import sys
 import time
@@ -38,7 +39,7 @@ class DataProcessWorker(multiprocessing.Process):
         self.data_paths = data_paths
         self.data_name = data_name
         self.strategy_name = validate_runtime_strategy(strategy_name)
-        self.config_dir = config_dir or (os.getcwd() + "\\model\\tomls")
+        self.config_dir = config_dir or str(CONFIG_DIR)
         self._heartbeat = ProcessHeartbeat(heartbeat, heartbeat_interval_s)
         # 添加标准输出重定向
         self.stdout = sys.stdout

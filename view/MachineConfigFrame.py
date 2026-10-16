@@ -8,10 +8,9 @@ from control.MachineConfigFrameControl import (
 
 class MachineConfigFrame(wx.Dialog):
     PARAM_LABELS = {
-        **{keys[0]: "前安全距离／延后收枪距离(mm)" for keys in WINDOW_KEYS.values()},
-        **{keys[1]: "后安全距离／提前出枪距离(mm)" for keys in WINDOW_KEYS.values()},
-        "yunque_safety_window_front_mm": "前安全距离／提前出枪距离(mm)",
-        "yunque_safety_window_back_mm": "后安全距离／延后收枪距离(mm)",
+        **{keys[0]: "前安全距离（出料）／延后收枪距离(mm)" for keys in WINDOW_KEYS.values()},
+        **{keys[1]: "后安全距离（来料）／提前出枪距离(mm)" for keys in WINDOW_KEYS.values()},
+        "yunque_safety_window_back_mm": "后安全距离（来料）／X安全包络(mm)",
         "tracking": "是否跟踪(0否/1是)",
         "y_move_min": "Y轴往复最小位置(mm)",
         "y_move_max": "Y轴往复最大位置(mm)",
@@ -162,14 +161,13 @@ class MachineConfigFrame(wx.Dialog):
         for key, label in self.PARAM_ORDER:
             grid.Add(wx.StaticText(parent, label=label), 0, wx.ALIGN_CENTER_VERTICAL)
             ctrl = wx.TextCtrl(parent)
-            if key == "yunque_safety_window_front_mm":
-                ctrl.SetToolTip("云雀front对应来料方向；进入该距离开始定位。单位mm，须为10的非负整数倍。")
-            elif key == "yunque_safety_window_back_mm":
-                ctrl.SetToolTip("云雀back对应出料方向；尾部通过该距离且来料方向空闲后收枪。单位mm，须为10的非负整数倍。")
-            elif key.endswith("_safety_window_front_mm"):
+            if key.endswith("_safety_window_front_mm"):
                 ctrl.SetToolTip("前为出料方向；尾部通过该距离且来料方向空闲后收枪。单位mm，须为10的非负整数倍。")
             elif key.endswith("_safety_window_back_mm"):
-                ctrl.SetToolTip("后为来料方向；进入该距离开始定位。单位mm，须为10的非负整数倍。")
+                if key.startswith("yunque_"):
+                    ctrl.SetToolTip("后为来料方向；用于X安全包络，Y待料定位检查整段来料队列。单位mm，须为10的非负整数倍。")
+                else:
+                    ctrl.SetToolTip("后为来料方向；进入该距离开始定位。单位mm，须为10的非负整数倍。")
             ctrls[key] = ctrl
             grid.Add(ctrl, 1, wx.EXPAND)
         return grid

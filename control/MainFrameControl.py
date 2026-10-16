@@ -8,6 +8,8 @@ import multiprocessing
 from control.DataProcessWorker import DataProcessWorker
 from view.MainFrame import MainFrame
 from model.utils.TomlLoader import TomlLoader
+from model.utils.AppSettings import AppSettings
+from model.utils.ProjectPaths import CONFIG_DIR, POINTS_DIR, TEMP_DIR
 from model.utils.LidarDirectionUtil import (
     get_active_directions,
     get_active_lidar_config,
@@ -55,9 +57,10 @@ class MainFrameController(MainFrame):
         self.filter = DataFilter()
         self.log_queue = multiprocessing.Queue()  # 用于收集子进程输出
         self.control_queue = multiprocessing.Queue()  # 专门用于传输按钮状态的队列
-        self.control_type = 2  # 1: 调用数据处理, 2: 实际采数联调, 3: 只进行画图
+        self.app_settings = AppSettings.load()
+        self.control_type = self.app_settings.control_type
 
-        self.toml_path = os.getcwd() + "\\model\\tomls"
+        self.toml_path = str(CONFIG_DIR)
         self.mode_config_path = f"{self.toml_path}\\ModeConfig.toml"
         self.read_data_config = TomlLoader.load(
             f"{self.toml_path}\\ReadDataConfig.toml"
@@ -180,8 +183,7 @@ class MainFrameController(MainFrame):
             print("系统已在运行中")
             return
 
-        print("now start main.exe version is 2026/9/29 PM")
-        print("启动系统...")
+        print("启动2026/10/16版本集瑞系统...")
         try:
             validate_runtime_strategy(self.strategy_name)
         except ValueError as exc:
@@ -207,8 +209,8 @@ class MainFrameController(MainFrame):
 
         if self.control_type == 1:
             # --------------------------调试数据处理----------------------------------------
-            data_paths = r"C:\Users\admin\Desktop\jr\data\points"
-            data_name = "20260929_111449.txt"  #
+            data_paths = str(POINTS_DIR)
+            data_name = self.app_settings.replay_file
 
             # 创建进程通信队列
             raw_data_queue = multiprocessing.Queue()
@@ -332,11 +334,8 @@ class MainFrameController(MainFrame):
             logger.info(f"start plc_handler process ID: {plc_handler.pid}")
             # # --------------------------系统软件运行----------------------------------------
         else:
-            data_paths = r"C:\Users\admin\Desktop\jr\data\temp"
-            data_name = "20260915_151856.txt"
-            # data_name = "20250723_095550.txt"  # 河村试喷大
-            # data_name = "20250723_095239.txt"  # 河村试喷中
-            # data_name = "20250805_112904.txt"  # 河村试喷小
+            data_paths = str(TEMP_DIR)
+            data_name = self.app_settings.plot_file
 
             # 画图
             visualizer = PointCloudVisualizer()
@@ -350,6 +349,11 @@ class MainFrameController(MainFrame):
                 data = np.loadtxt(direction_path)
                 point_cloud = np.asarray(data)[:, :3]
                 visualizer.draw_point_cloud(point_cloud)
+
+            # 纯绘图没有子进程队列，不能创建引用 viz_queue 的采集定时器。
+            self.running = False
+            self.on_program_stopped()
+            return
 
         # 启动可视化更新线程
         self.viz_timer = wx.Timer(self)

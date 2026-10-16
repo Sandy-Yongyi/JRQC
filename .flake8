@@ -6,7 +6,7 @@ max-line-length = 120
 extend-ignore = E203, W503
 
 # 排除特定的目录或文件
-exclude = .venv, .idea, .vscode, demo, resource, dev_test, lib
+exclude = .venv, .idea, .vscode, demo, resource, dev_test, lib, data, outputs
 
 # 启用复杂度检查
 max-complexity = 20

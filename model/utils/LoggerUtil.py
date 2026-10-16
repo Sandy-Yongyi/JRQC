@@ -2,11 +2,10 @@ import logging
 import os
 import glob
 from datetime import datetime
+from model.utils.ProjectPaths import LOG_DIR
 
 # 设置日志文件保存的目录
-log_directory = os.getcwd() + "\\data\\logs"
-if not os.path.exists(log_directory):
-    os.makedirs(log_directory)
+log_directory = str(LOG_DIR)
 
 # 创建日志记录器
 logger = logging.getLogger(__name__)
@@ -19,35 +18,37 @@ MAX_LOG_SIZE = 300 * 1024 * 1024  # 300MB
 current_log_file = None
 
 
+class _LazyFileHandler(logging.FileHandler):
+    """首次写日志时才创建目录和文件，导入模块不产生磁盘副作用。"""
+
+    def _open(self):
+        os.makedirs(os.path.dirname(self.baseFilename), exist_ok=True)
+        return super()._open()
+
+
 def setup_logger():
     global current_log_file
     # 生成带时间戳的日志文件名
-    log_filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".log"
+    log_filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f") + f"_{os.getpid()}.log"
     log_filepath = os.path.join(log_directory, log_filename)
 
     # 创建文件处理器
     # Windows 下显式使用 UTF-8 with BOM，避免中文日志在记事本/部分查看器中出现乱码
-    file_handler = logging.FileHandler(log_filepath, encoding="utf-8-sig")
+    file_handler = _LazyFileHandler(log_filepath, encoding="utf-8-sig", delay=True)
     formatter = logging.Formatter(
         "%(asctime)s - %(levelname)s - %(filename)s - %(lineno)d - %(message)s"
     )
     file_handler.setFormatter(formatter)
 
-    # 注释掉控制台输出处理器 - 这样logger就不会在控制台输出
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(logging.INFO)  # 终端只显示INFO及以上级别
-
     # 清除现有处理器
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
+        handler.close()
 
     # 添加新处理器 - 只添加文件处理器
     logger.addHandler(file_handler)
-    # logger.addHandler(console_handler)  # 移除控制台输出
 
     current_log_file = log_filepath
-    logger.info(f"Logging started in new file: {log_filepath}")
     return logger
 
 
@@ -57,7 +58,6 @@ setup_logger()
 
 def check_and_rotate_log():
     """检查日志文件大小，超过300MB时创建新日志文件"""
-    global current_log_file
     if current_log_file and os.path.exists(current_log_file):
         file_size = os.path.getsize(current_log_file)
         if file_size > MAX_LOG_SIZE:

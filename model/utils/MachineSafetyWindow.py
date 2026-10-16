@@ -1,4 +1,4 @@
-"""设备安全距离：云雀front来料/back出料，二维front出料/back来料。"""
+"""设备安全距离：所有机型统一front出料方向、back来料方向。"""
 
 WINDOW_KEYS = {
     "xn_side": ("yunque_safety_window_front_mm", "yunque_safety_window_back_mm"),
@@ -8,7 +8,7 @@ WINDOW_DEFAULTS = {"xn_side": 200, "out_lift": 300}
 
 
 def machine_window_distances(machine):
-    """统一返回(出料距离, 来料距离)，与机型的字段命名解耦。"""
+    """统一返回(front出料距离, back来料距离)，不按机型交换方向。"""
     kind = machine["type"]
     values = []
     for key in WINDOW_KEYS[kind]:
@@ -16,11 +16,11 @@ def machine_window_distances(machine):
         if isinstance(value, bool) or not isinstance(value, int) or value < 0 or value % 10:
             raise ValueError(f"{key} 必须是10mm的非负整数倍")
         values.append(value)
-    return tuple(reversed(values)) if kind == "xn_side" else tuple(values)
+    return tuple(values)
 
 
 def machine_window_bounds(machine, stack_size, *, history_index=None):
-    """返回队列 [start, stop) 和站位索引，禁止静默截断安全窗口。"""
+    """返回队列 [站位-back/10, 站位+front/10+1)，禁止静默截断。"""
     outgoing, incoming = machine_window_distances(machine)
     if isinstance(stack_size, bool) or not isinstance(stack_size, int) or stack_size <= 0:
         raise ValueError("帧队列长度必须是正整数")

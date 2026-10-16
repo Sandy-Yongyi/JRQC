@@ -1,4 +1,5 @@
 ﻿import os
+from model.utils.ProjectPaths import CONFIG_DIR
 import sys
 import time
 import multiprocessing
@@ -53,7 +54,7 @@ class PlcCommunicationProcess(multiprocessing.Process):
         self.strategy_name = validate_runtime_strategy(strategy_name)
         self._heartbeat = ProcessHeartbeat(heartbeat, heartbeat_interval_s)
 
-        self.config_dir = os.path.join(os.getcwd(), "model", "tomls")
+        self.config_dir = str(CONFIG_DIR)
         self.plc_config_path = os.path.join(self.config_dir, "PlcConfig.toml")
         self.read_data_config_path = os.path.join(
             self.config_dir, "ReadDataConfig.toml"
@@ -631,7 +632,8 @@ class PlcCommunicationProcess(multiprocessing.Process):
         )
         if fifo_delta < 0:
             logger.warning(
-                f"PLC fifo reversed unexpectedly: last_synced={self.last_synced_chain_fifo}, cur={current_fifo}, reset sync base"
+                f"PLC fifo reversed unexpectedly: last_synced={self.last_synced_chain_fifo}, "
+                f"cur={current_fifo}, reset sync base"
             )
             self.last_synced_chain_fifo = current_fifo
             self.current_cycle_raw_shift_steps = 0

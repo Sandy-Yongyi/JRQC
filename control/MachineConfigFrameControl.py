@@ -1,4 +1,5 @@
 import os
+from model.utils.ProjectPaths import CONFIG_DIR, config_path
 from model.utils.MachineSafetyWindow import (
     WINDOW_KEYS, machine_window_bounds, with_machine_window_defaults,
 )
@@ -21,7 +22,7 @@ def _load_range(cfg: dict, key: str, default_min: int, default_max: int):
 
 def _get_param_range_rules(sn: int | None = None, strategy_name="frame_by_frame"):
     """加载参数范围。距离类来自 SprayConfig，速度类来自当前设备 max_limit_speed。"""
-    spray_config_path = os.path.join(os.getcwd(), "model", "tomls", "SprayConfig.toml")
+    spray_config_path = config_path("SprayConfig.toml")
     machine_cfg = (
         load_machine_config_for_ui(sn, strategy_name) if sn is not None else {}
     )
@@ -114,7 +115,7 @@ FLAT_CONFIG_KEY = "flat"
 
 
 def _get_toml_path(strategy_name: str) -> str:
-    config_dir = os.path.join(os.getcwd(), "model", "tomls")
+    config_dir = str(CONFIG_DIR)
     return get_machine_config_path(config_dir, strategy_name)
 
 
@@ -170,7 +171,7 @@ def save_machine_config_from_ui(
     normalized_values = _normalize_ui_values_for_save(values)
     if strategy_name == "frame_by_frame":
         machine = {**load_machine_config_for_ui(sn, strategy_name), **normalized_values}
-        read_config = TomlLoader.load(os.path.join(os.getcwd(), "model", "tomls", "ReadDataConfig.toml"))
+        read_config = TomlLoader.load(config_path("ReadDataConfig.toml"))
         machine_window_bounds(machine, read_config["frame_by_frame_queue_size"])
         normalized_values.update({key: machine[key] for key in WINDOW_KEYS[machine["type"]]})
     toml_path = _get_toml_path(strategy_name)
