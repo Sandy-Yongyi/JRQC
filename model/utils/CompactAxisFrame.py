@@ -22,6 +22,10 @@ class CompactAxisRows(Sequence):
     def zeros(cls, count):
         return cls((0, 0, 0) * count)
 
+    def is_zero_filled(self) -> bool:
+        """检查全零帧，避免逐行构造 AxisData。"""
+        return self._values.count(0) == len(self._values)
+
     def __len__(self):
         return len(self._values) // 3
 

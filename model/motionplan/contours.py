@@ -14,6 +14,7 @@ from model.motionplan.contracts import (
     ThreeRegionBoxes,
 )
 from model.motionplan._validation import _require_int
+from model.utils.CompactAxisFrame import CompactAxisRows
 
 
 def _maximum_y_gap(y_threshold: float, maximum_missing_y_layers: int) -> float:
@@ -52,8 +53,11 @@ def _enforce_minimum_rail_gap(
 
 
 def _extract_contour_rows(axis_frame: object) -> ContourRows:
+    data = getattr(axis_frame, "FrameData", None)
+    if type(data) is CompactAxisRows and data.is_zero_filled():
+        data = ()
     rows = []
-    for item in getattr(axis_frame, "FrameData", None) or ():
+    for item in data or ():
         try:
             height = float(item.H_Axis)
             v_min = float(item.V_Axis_Min)
@@ -98,6 +102,9 @@ def _median_smooth(values: np.ndarray) -> np.ndarray:
     if values.size < 3:
         return values.copy()
     padded = np.pad(values, (1, 1), mode="edge")
+    if values.ndim == 1:
+        windows = np.lib.stride_tricks.sliding_window_view(padded, 3)
+        return np.median(windows, axis=1)
     return np.asarray(
         [np.median(padded[index : index + 3]) for index in range(values.size)],
         dtype=float,

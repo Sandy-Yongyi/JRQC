@@ -139,6 +139,9 @@ from model.plc.MovingFrameData import SendMovingFrameData
 from model.utils.MachineSafetyWindow import machine_window_bounds, machine_window_distances
 
 
+_MIN_CONTOUR_CACHE_LIMIT = 512
+
+
 class MotionFrameByFramePlanning:
     """将逐帧规划结果转换为 PLC 发送帧。"""
 
@@ -170,6 +173,7 @@ class MotionFrameByFramePlanning:
         # 入队后的帧按不可变快照使用；替换帧而非原地修改其坐标。
         # 强引用防止id复用，LRU上限避免长期运行积累全部历史帧。
         self._contour_cache = OrderedDict()
+        self._contour_cache_limit = _MIN_CONTOUR_CACHE_LIMIT
         self._variable_2d_cache_key = None
         self._variable_2d_cache: dict[str, Variable2DWindowObservation] = {}
         self.last_reasons: tuple[str, ...] = ()
@@ -212,6 +216,7 @@ class MotionFrameByFramePlanning:
         self._geometry_cache = {}
         self._prepared_geometry_cache.clear()
         self._contour_cache.clear()
+        self._contour_cache_limit = _MIN_CONTOUR_CACHE_LIMIT
         self._variable_2d_cache_key = None
         self._variable_2d_cache = {}
         self.last_reasons = ()
@@ -457,6 +462,12 @@ class MotionFrameByFramePlanning:
             _, stop, _ = machine_window_bounds(machine, frame_queue_manager.stack_size)
             ranges.append((key, side, 0, stop))
 
+        # 两侧整段判空和待料会访问同一批在队帧。容量不足会在顺序扫描时逐帧淘汰它们。
+        sides = {side for _, side, _, _ in ranges}
+        self._contour_cache_limit = max(_MIN_CONTOUR_CACHE_LIMIT, sum(len(frame_stack[side]) for side in sides))
+        while len(self._contour_cache) > self._contour_cache_limit:
+            self._contour_cache.popitem(last=False)
+
         revision = getattr(frame_queue_manager, "frame_revision", None)
         if isinstance(revision, int) and not isinstance(revision, bool):
             revision_signature = revision
@@ -657,7 +668,7 @@ class MotionFrameByFramePlanning:
             values.flags.writeable = False
         self._contour_cache[key] = (frame, frame_data, rows)
         self._contour_cache.move_to_end(key)
-        if len(self._contour_cache) > 512:
+        if len(self._contour_cache) > self._contour_cache_limit:
             self._contour_cache.popitem(last=False)
         return rows
 

@@ -28,7 +28,11 @@ py -3.11 -m venv .venv
 
 `replay_file` 和 `plot_file` 填写文件后缀，例如 `20260923_133240.txt`，实际文件可带 `combined_`、`left_`、`right_` 等方向前缀。
 
-**`replay` 仍会按 `PlcConfig.toml` 建立 PLC 连接。** 只查看算法结果时使用离线工具。当前工作区保留原有回放模式、本机 PLC 地址及设备标定参数；启动前按实际用途检查配置。
+**`replay` 仍会按 `PlcConfig.toml` 建立 PLC 连接。** 只查看算法结果时使用离线工具。
+启动模式和设备地址以当前 TOML 为准，启动前按现场实际用途检查配置与标定参数。
+
+现场离线安装包的使用、升级和重新构建方法见 [部署说明](docs/deployment.md)。
+需要解压后直接运行时，使用 [免安装版](docs/portable.md)。
 
 ## 常用开发命令
 
